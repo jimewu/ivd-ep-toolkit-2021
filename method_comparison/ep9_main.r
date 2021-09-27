@@ -18,39 +18,35 @@ lapply(
 setwd(
     paste(
         git = here(),
-        category = "interference",
+        category = "method_comparison",
         sep = "/"
     )
 )
 
-# * setting_ep7
+# * setting_ep9
 
-setting_ep7 <- read_ods(
+setting_ep9 <- read_ods(
     "input.ods",
-    sheet = "setting_ep7"
+    sheet = "setting_ep9"
 )
 
 # * import
 ## 讀取資料
-data_ep7_import <- read_ods(
+data_ep9_import <- read_ods(
     "input.ods",
-    sheet = "data_ep7"
+    sheet = "data_ep9"
 )
 
 
 # * tidy
-## 依照interferent, interferent_level, analyte_level分組
-data_ep7_tidy_combine <- data_ep7_import %>%
-    mutate(
-        condition = paste(
-            interferent,
-            ": ",
-            interferent_level,
-            " x analyte: ",
-            analyte_level,
-            sep = ""
-        )
-    )
 
-data_ep7_tidy_split <- data_ep7_tidy_combine %>%
-    split(.$condition)
+data_ep9_tidy <-
+    # 去除NA值
+    na.omit(data_ep9_import) %>%
+    # 依照y_ref升冪排序
+    arrange(y_ref) %>%
+    # 計算difference
+    mutate(
+        diff = y_test - y_ref,
+        pctdiff = 100 * diff / y_ref
+    )

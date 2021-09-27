@@ -1,4 +1,4 @@
-source("ep7_main.r")
+source("ep9_main.r")
 
 # ! tmp
 # * Load PKG
@@ -6,7 +6,8 @@ pkg_lst <- c(
     "dplyr",
     "DT",
     "flextable",
-    "ggplot2"
+    "ggplot2",
+    "EnvStats"
 )
 
 lapply(
@@ -16,124 +17,111 @@ lapply(
 )
 
 # * analysis
-## 依照CLSI EP7Ed3E Table 3
-## 計算y_control & y_test: mean, sd
-## 對比y_control VS y_test:
-## diff, diff_lwr, diff_upr,
-## pct_diff, pct_diff_lwr, pct_diff_upr
-data_ep7_analysis_diff <- data_ep7_tidy_combine %>%
-    group_by(
-        condition,
-        interferent,
-        interferent_level,
-        analyte_level
-    ) %>%
-    summarise(
-        test_mean = mean(y_test),
-        test_sd = sd(y_test),
-        control_mean = mean(y_control),
-        control_sd = sd(y_control),
-        # 計算diff_mean (and 95% CI), diff_sd
-        diff_mean = mean(y_test - y_control),
-        diff_sd = sd(y_test - y_control),
-        ## 依照CLSI EP7Ed3E eq7-8計算
-        df = length(y_test) + length(y_control) - 2,
-        margin = qt(
-            p = 1 - 0.05 / 2,
-            df = df
-        ) *
-            sqrt(
-                control_sd^2 / length(y_control) +
-                    test_sd^2 / length(y_test)
-            ),
-        diff_mean_upr = diff_mean + margin,
-        diff_mean_lwr = diff_mean - margin,
-        pctdiff_mean = 100 * diff_mean / mean(y_control),
-        pctdiff_mean_upr = 100 * diff_mean_upr / mean(y_control),
-        pctdiff_mean_lwr = 100 * diff_mean_lwr / mean(y_control)
-    ) %>%
-    ungroup()
+## Rosner's Test for Outliers based on Diff
+data_ep9_analysis_rosner_diff <- rosnerTest(
+    data_ep9_tidy$diff,
+    k = floor(
+        0.05 * length(data_ep9_tidy$y_test)
+    )
+)$all.stats
+
+data_ep9_analysis_rosner_diff <- data_ep9_analysis_rosner_diff[
+    , colnames(data_ep9_analysis_rosner_diff) != "Obs.Num"
+]
+
+## Rosner's Test for Outliers based on PctDiff
+data_ep9_analysis_rosner_pctdiff <- rosnerTest(
+    data_ep9_tidy$pctdiff,
+    k = floor(
+        0.05 * length(data_ep9_tidy$y_test)
+    )
+)$all.stats
+
+data_ep9_analysis_rosner_pctdiff <- data_ep9_analysis_rosner_pctdiff[
+    , colnames(data_ep9_analysis_rosner_pctdiff) != "Obs.Num"
+]
+
+# * report_critical
+## Candidate Outliers based on Diff
+data_ep9_report_crit_outlier_diff <- data_ep9_analysis_rosner_diff[
+    data_ep9_analysis_rosner_diff$Outlier == TRUE,
+]$Value
+
+## Candidate Outliers based on PctDiff
+data_ep9_report_crit_outlier_diff <- data_ep9_analysis_rosner_diff[
+    data_ep9_analysis_rosner_diff$Outlier == TRUE,
+]$Value
+
 
 # * report_tab
-## Difference表格
-data_ep7_report_tab_diff <- data_ep7_analysis_diff %>%
-    transmute(
-        Interferent = interferent,
-        "Interferent Level" = interferent_level,
-        "Analyte Level" = analyte_level,
-        "Test Mean" = round(
-            test_mean,
-            digits = 3
-        ),
-        "Test SD" = round(
-            test_sd,
-            digits = 3
-        ),
-        "Control Mean" = round(
-            control_mean,
-            digits = 3
-        ),
-        "Control SD" = round(
-            control_sd,
-            digits = 3
-        ),
-        "Difference" = round(
-            diff_mean,
-            digits = 3
-        ),
-        "95% CI Lwr." = round(
-            diff_mean_upr,
-            digits = 3
-        ),
-        "95% CI Upr." = round(
-            diff_mean_lwr,
-            digits = 3
-        )
-    )
+data_ep9_report_tab_rosner_pctdiff <- data_ep9_analysis_rosner_diff
 
-data_ep7_report_tab_diff_dt <- datatable(
-    data_ep7_report_tab_diff,
+data_ep9_report_tab_rosner_pctdiff_dt <- datatable(
+    data_ep9_report_tab_rosner_pctdiff,
     rownames = FALSE
 )
 
-## Percentage Difference表格
-## Difference表格
-data_ep7_report_tab_pctdiff <- data_ep7_analysis_diff %>%
-    transmute(
-        Interferent = interferent,
-        "Interferent Level" = interferent_level,
-        "Analyte Level" = analyte_level,
-        "Test Mean" = round(
-            test_mean,
-            digits = 3
+
+# * report_fig
+## 原始結果圖
+data_ep9_report_fig_raw <- ggplot(
+    data_ep9_tidy,
+    aes(
+        x = y_ref,
+        y = y_test
+    )
+) +
+    geom_point() +
+    xlab(setting_ep9$name_of_ref) +
+    ylab(setting_ep9$name_of_test)
+
+## difference plot
+data_ep9_report_fig_diff <- ggplot(
+    data_ep9_tidy,
+    aes(
+        x = y_ref,
+        y = diff
+    )
+) +
+    geom_point() +
+    xlab(setting_ep9$name_of_ref) +
+    ylab(paste(
+        "Difference (",
+        setting_ep9$unit_of_device,
+        ")",
+        sep = ""
+    )) +
+    geom_hline(
+        yintercept = 0,
+        alpha = 0.5
+    ) +
+    geom_hline(
+        yintercept = sd(data_ep9_tidy$diff) * c(
+            -3, -2, -1, 1, 2, 3
         ),
-        "Test SD" = round(
-            test_sd,
-            digits = 3
-        ),
-        "Control Mean" = round(
-            control_mean,
-            digits = 3
-        ),
-        "Control SD" = round(
-            control_sd,
-            digits = 3
-        ),
-        "%Difference" = round(
-            pctdiff_mean,
-            digits = 3
-        ),
-        "95% CI Lwr." = round(
-            pctdiff_mean_upr,
-            digits = 3
-        ),
-        "95% CI Upr." = round(
-            pctdiff_mean_lwr,
-            digits = 3
-        )
+        alpha = 0.5,
+        linetype = 2
     )
 
-data_ep7_report_tab_pctdiff_dt <- datatable(
-    data_ep7_report_tab_pctdiff,
-    rownames = FALSE
-)
+## %difference plot
+data_ep9_report_fig_pctdiff <- ggplot(
+    data_ep9_tidy,
+    aes(
+        x = y_ref,
+        y = pctdiff
+    )
+) +
+    geom_point() +
+    xlab(setting_ep9$name_of_ref) +
+    ylab("Difference (%)") +
+    geom_hline(
+        yintercept = 0,
+        alpha = 0.5
+    ) +
+    geom_hline(
+        yintercept = sd(data_ep9_tidy$pctdiff) * c(
+            -3, -2, -1, 1, 2, 3
+        ),
+        alpha = 0.5,
+        linetype = 2
+    )

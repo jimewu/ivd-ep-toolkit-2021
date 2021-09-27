@@ -40,11 +40,14 @@ data_ep9_import <- read_ods(
 )
 
 # * tidy
-## 去除NA值
-data_ep9_tidy <- na.omit(data_ep9_import)
+data_ep9_tidy <-
+    # 去除NA值
+    na.omit(data_ep9_import) %>%
+    # 依照y_ref升冪排序
+    arrange(y_ref)
 
 # * analysis: Rosner's Test for Outliers
-data_ep9_analysis_rosner <- rosnerTest(
+data_ep9_analysis_rosner() <- rosnerTest(
     data_ep9_tidy$y_test,
     k = floor(
         0.05 * length(data_ep9_tidy$y_test)
