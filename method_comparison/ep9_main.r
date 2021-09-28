@@ -49,4 +49,8 @@ data_ep9_tidy <-
     mutate(
         diff = y_test - y_ref,
         pctdiff = 100 * diff / y_ref
+    ) %>% cbind(
+        order = seq(
+            1, length(.$y_ref)
+        )
     )

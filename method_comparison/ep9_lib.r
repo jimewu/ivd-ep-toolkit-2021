@@ -7,7 +7,8 @@ pkg_lst <- c(
     "DT",
     "flextable",
     "ggplot2",
-    "EnvStats"
+    "EnvStats",
+    "mcr"
 )
 
 lapply(
@@ -17,49 +18,142 @@ lapply(
 )
 
 # * analysis
-## Rosner's Test for Outliers based on Diff
-data_ep9_analysis_rosner_diff <- rosnerTest(
-    data_ep9_tidy$diff,
-    k = floor(
-        0.05 * length(data_ep9_tidy$y_test)
-    )
-)$all.stats
+## Rosner's Test for Outliers
+data_ep9_analysis_rosner <- lapply(
+    list(
+        diff = "diff",
+        pctdiff = "pctdiff"
+    ),
+    function(x) {
+        result <- rosnerTest(
+            data_ep9_tidy[, x],
+            k = floor(
+                0.05 * length(data_ep9_tidy$y_test)
+            )
+        )$all.stats
 
-data_ep9_analysis_rosner_diff <- data_ep9_analysis_rosner_diff[
-    , colnames(data_ep9_analysis_rosner_diff) != "Obs.Num"
-]
+        result <- result[
+            , colnames(result) != "Obs.Num"
+        ]
 
-## Rosner's Test for Outliers based on PctDiff
-data_ep9_analysis_rosner_pctdiff <- rosnerTest(
-    data_ep9_tidy$pctdiff,
-    k = floor(
-        0.05 * length(data_ep9_tidy$y_test)
-    )
-)$all.stats
+        return(result)
+    }
+)
 
-data_ep9_analysis_rosner_pctdiff <- data_ep9_analysis_rosner_pctdiff[
-    , colnames(data_ep9_analysis_rosner_pctdiff) != "Obs.Num"
-]
+data_ep9_analysis_mcreg <- lapply(
+    list(
+        LinReg = data.frame(
+            method.reg = "LinReg",
+            method.ci = "bootstrap"
+        ),
+        Deming = data.frame(
+            method.reg = "Deming",
+            method.ci = "bootstrap"
+        ),
+        WLinReg = data.frame(
+            method.reg = "WLinReg",
+            method.ci = "bootstrap"
+        ),
+        WDeming = data.frame(
+            method.reg = "WDeming",
+            method.ci = "bootstrap"
+        ),
+        PaBa = data.frame(
+            method.reg = "PaBa",
+            method.ci = "bootstrap"
+        )
+    ),
+    function(x) {
+        result <- vector(mode = "list")
+
+        result[["raw"]] <- mcreg(
+            x = data_ep9_tidy$y_ref,
+            y = data_ep9_tidy$y_test,
+            mref.name = setting_ep9$name_of_ref,
+            mtest.name = setting_ep9$name_of_test,
+            error.ratio = setting_ep9$repeatability / setting_ep9$repeatability_ref,
+            alpha = 0.05,
+            method.reg = x$method.reg,
+            method.ci = x$method.ci
+        )
+
+        result[["coef"]] <- result[["raw"]] %>%
+            MCResult.getCoefficients() %>%
+            as.data.frame() %>%
+            cbind(
+                .,
+                ideal = c(0, 1)
+            ) %>%
+            mutate(
+                is.ideal = ifelse(
+                    (LCI - ideal) * (UCI - ideal) < 0,
+                    TRUE,
+                    FALSE
+                ),
+                ci.range = UCI - LCI
+            )
+
+        return(result)
+    }
+)
 
 # * report_critical
 ## Candidate Outliers based on Diff
-data_ep9_report_crit_outlier_diff <- data_ep9_analysis_rosner_diff[
-    data_ep9_analysis_rosner_diff$Outlier == TRUE,
-]$Value
+data_ep9_report_crit_outlier <- lapply(
+    data_ep9_analysis_rosner,
+    function(x) {
+        result <- x[
+            x$Outlier == TRUE,
+        ]$Value
 
-## Candidate Outliers based on PctDiff
-data_ep9_report_crit_outlier_diff <- data_ep9_analysis_rosner_diff[
-    data_ep9_analysis_rosner_diff$Outlier == TRUE,
-]$Value
+        # 如果沒有outlier則回傳NA
+        if (
+            length(result) == 0
+        ) {
+            return(NA)
+        } else {
+            return(result)
+        }
+    }
+)
+
 
 
 # * report_tab
-data_ep9_report_tab_rosner_pctdiff <- data_ep9_analysis_rosner_diff
+data_ep9_report_tab_rosner <- lapply(
+    data_ep9_analysis_rosner,
+    function(x) {
+        # 對數值欄取到小數第三位
+        for (
+            i in seq(
+                1, ncol(x)
+            )
+        ) {
+            if (class(x[, i]) == "numeric") {
+                x[, i] <- round(
+                    x[, i],
+                    digits = 3
+                )
+            }
+        }
 
-data_ep9_report_tab_rosner_pctdiff_dt <- datatable(
-    data_ep9_report_tab_rosner_pctdiff,
-    rownames = FALSE
+        return(x)
+    }
 )
+
+# * report_tab_dt
+data_ep9_report_tab_rosner_dt <- lapply(
+    data_ep9_report_tab_rosner,
+    function(x) {
+        result <- datatable(
+            x,
+            rownames = FALSE
+        )
+
+        return(result)
+    }
+)
+
 
 
 # * report_fig
@@ -76,6 +170,66 @@ data_ep9_report_fig_raw <- ggplot(
     ylab(setting_ep9$name_of_test)
 
 ## difference plot
+data_ep9_report_fig_diff <- ggplot(
+    rbind(
+        diff = data.frame(
+            type_x = "Measurement Value",
+            x = data_ep9_tidy$y_ref,
+            y = data_ep9_tidy$diff
+        ),
+        odr_diff = data.frame(
+            type_x = "Ordered Measurement",
+            x = data_ep9_tidy$order,
+            y = data_ep9_tidy$diff
+        )
+    ),
+    aes(
+        x = x,
+        y = y
+    )
+) +
+    geom_point() +
+    geom_hline(
+        yintercept = 0,
+        alpha = 0.5
+    ) +
+    facet_wrap(
+        ~type_x,
+        scales = "free"
+    )
+
+data_ep9_report_fig_pctdiff <- ggplot(
+    rbind(
+        pctdiff = data.frame(
+            type_x = "Measurement Value",
+            x = data_ep9_tidy$y_ref,
+            y = data_ep9_tidy$pctdiff
+        ),
+        odr_pctdiff = data.frame(
+            type_x = "Ordered Measurement",
+            x = data_ep9_tidy$order,
+            y = data_ep9_tidy$pctdiff
+        )
+    ),
+    aes(
+        x = x,
+        y = y
+    )
+) +
+    geom_point() +
+    geom_hline(
+        yintercept = 0,
+        alpha = 0.5
+    ) +
+    facet_wrap(
+        ~type_x,
+        scales = "free"
+    )
+
+
+
+
+
 data_ep9_report_fig_diff <- ggplot(
     data_ep9_tidy,
     aes(
@@ -125,3 +279,15 @@ data_ep9_report_fig_pctdiff <- ggplot(
         alpha = 0.5,
         linetype = 2
     )
+
+# compareFit
+data_report_fig_comparefit_fun <-
+    function(x = data_ep9_analysis_mcreg) {
+        compareFit(
+            x[["PaBa"]][["raw"]],
+            x[["WDeming"]][["raw"]],
+            x[["WLinReg"]][["raw"]],
+            x[["Deming"]][["raw"]],
+            x[["LinReg"]][["raw"]]
+        )
+    }
