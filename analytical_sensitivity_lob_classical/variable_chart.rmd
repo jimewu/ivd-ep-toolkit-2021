@@ -1,0 +1,101 @@
+---
+title: "LoB Classical Method Variables"
+output:
+    ioslides_presentation:
+        widescreen: true
+        slide_level: 2
+---
+
+# main_ep17: 主程式(vary by case)
+
+## setting: 讀取設定 
+
+- `setting_ep17`
+
+## import: 匯入資料 
+
+- `data_ep17lob_import`
+
+## tidy: 整理資料 
+
+### combine: 單一表格 
+
+- `data_ep17lob_tidy_combine`
+
+### split: 依照reagent_lot拆分
+
+- `data_ep17lob_tidy_split`
+
+# lib_ep17 (constant)
+
+## analysis: 資料分析
+
+### 定義函數:常態資料計算lob算法(輸出mean, sd, lob)
+
+- `get_lob_para()`
+
+### 定義函數:非常態資料計算lob算法(輸出mean, sd, lob)
+
+- `get_lob_nonpara()`
+
+---
+    
+### 以Shapiro-Wilk test確認資料是否為常態(以p-value表示)
+
+- `imd[["spw-p"]]`
+
+### 單取reagent_lot數量 (依數量決定是否一起算)
+
+- `imd[["reagent_lot"]]`
+
+### 單取sample_lot數量(計算公式所需)
+
+- `imd[["sample_lot"]]`
+
+---
+
+### if-loop: 區分情況計算lob
+
+#### (condition 1) 資料常態 & reaagent_lot >=4: 不分組用get_lob_para()算lob
+
+#### (condition 2) 資料非常態 & reaagent_lot >=4: 不分組用get_lob_nonpara()算lob
+
+- `data_ep17lob_analysis_lob`
+- `imd[["crit"]]`
+    - `normality`: 資料是否為常態
+    - `by_lot`: 是否依照reagnet_lot分組分析
+
+---
+
+#### (condition 3) 資料常態 & reaagent_lot ≤3: 不分組用get_lob_para()算lob
+
+#### (condition 4) 資料非常態 & reaagent_lot ≤3: 不分組用get_lob_nonpara()算lob
+
+- `imd[["lot_lob"]]`: 計算各lot lob
+- `imd[["crit"]]`
+    - `normality`: 資料是否為常態
+    - `by_lot`: 是否依照reagnet_lot分組分析
+
+---
+
+### if-loop: 若有分批lob則合併並取得final lob
+
+- `data_ep17lob_analysis_lob`
+
+## report_fig: 圖形報表
+
+### 原始資料histogram (看是否有對稱性)
+
+- `data_ep17lob_report_fig_raw`
+
+### qqplot (與常態分佈對比)
+
+- `data_ep17lob_report_fig_qq`
+
+## report_tab: 表格報表
+
+### LoB計算結果
+
+- `data_ep17lob_report_tab`
+
+#### if-loop: 如果`data_ep17lob_analysis_lob`中有`cp`，則格式化
