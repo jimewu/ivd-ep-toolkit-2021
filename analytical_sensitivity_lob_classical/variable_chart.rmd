@@ -98,4 +98,4 @@ output:
 
 - `data_ep17lob_report_tab`
 
-#### if-loop: 如果`data_ep17lob_analysis_lob`中有`cp`，則格式化
+#### if-loop: 如果`data_ep17lob_analysis_lob`中有`cp`，則格式化+標注單位，若無僅標注單位

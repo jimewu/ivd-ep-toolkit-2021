@@ -201,7 +201,8 @@ data_ep17lob_report_fig_raw <- ggplot(
     data_ep17lob_tidy_combine,
     aes(y)
 ) +
-    geom_histogram(bins = 30)
+    geom_histogram(bins = 30) +
+    xlab(setting_ep17$unit_of_device)
 
 
 data_ep17lob_report_fig_qq <- ggplot(
@@ -233,6 +234,7 @@ data_ep17lob_report_fig_qq <- ggplot(
 
 # * report_tab
 data_ep17lob_report_tab <- data_ep17lob_analysis_lob %>%
+    # 取到小數第3位
     round(digits = 3) %>%
     flextable() %>%
     merge_v() %>%
@@ -261,5 +263,31 @@ if (
             part = "header",
             j = "cp",
             value = as_paragraph("C", as_sub("P")),
+        ) %>%
+        # 加上數值單位說明
+        add_footer_lines(
+            values = paste(
+                "unit of Mean, SD, and LoB:",
+                setting_ep17$unit_of_device[1],
+                sep = " "
+            )
+        ) %>%
+        align(
+            part = "footer",
+            align = "right"
+        )
+} else {
+    data_ep17lob_report_tab <- data_ep17lob_report_tab %>%
+        # 加上數值單位說明
+        add_footer_lines(
+            values = paste(
+                "unit of values:",
+                setting_ep17$unit_of_device[1],
+                sep = " "
+            )
+        ) %>%
+        align(
+            part = "footer",
+            align = "right"
         )
 }
