@@ -27,6 +27,13 @@ setting_ep17 <- read_ods(
     sheet = "setting_ep17"
 )
 
+# * create empty lists
+data_ep17lod_tidy <- vector(mode = "list")
+data_ep17lod_analysis <- vector(mode = "list")
+data_ep17lod_report_fig <- vector(mode = "list")
+data_ep17lod_report_tab <- vector(mode = "list")
+data_ep17lod_report_crit <- vector(mode = "list")
+
 # * import
 ## case-specific: 不同樣品 & 不同的 data 日期
 
@@ -38,10 +45,11 @@ data_ep17lod_import <- read_ods(
 # * data_tidy
 
 ## combine
-data_ep17lod_tidy_combine <- data_ep17lod_import
+data_ep17lod_tidy[["combine"]] <- data_ep17lod_import
+# data_ep17lod_tidy_combine <- data_ep17lod_import
 
 ## split by reagent_lot
-data_ep17lod_tidy_split <- data_ep17lod_tidy_combine %>%
+data_ep17lod_tidy[["split"]] <- data_ep17lod_tidy[["combine"]] %>%
     # 加入分組依據
     mutate(
         split = paste(
@@ -57,3 +65,19 @@ data_ep17lod_tidy_split <- data_ep17lod_tidy_combine %>%
             return(x)
         }
     )
+# data_ep17lod_tidy_split <- data_ep17lod_tidy_combine %>%
+#     # 加入分組依據
+#     mutate(
+#         split = paste(
+#             "Regante Lot",
+#             reagent_lot
+#         )
+#     ) %>%
+#     split(.$split) %>%
+#     lapply(
+#         function(x) {
+#             x$split <- NULL
+
+#             return(x)
+#         }
+#     )

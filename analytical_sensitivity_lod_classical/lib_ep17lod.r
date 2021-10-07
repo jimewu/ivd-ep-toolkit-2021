@@ -15,35 +15,55 @@ lapply(
 )
 
 # * analysis
-### 計算各樣品的Mean & SD
-
-data_ep17lod_analysis_basic <- data_ep17lod_tidy_combine %>%
+### 計算各樣品的Mean, SD, Ratio > LOB, Median
+data_ep17lod_analysis[["basic"]] <- data_ep17lod_tidy[["combine"]] %>%
     group_by(
         sample,
         reagent_lot
     ) %>%
     summarize(
         n = length(y),
+        # parametric statistics
         mean = mean(y),
-        sd = sd(y)
+        sd = sd(y),
+        # non-parametric statistics
+        positivity = length(y[y > setting_ep17$lob]) / n,
+        median = median(y)
     ) %>%
     ungroup() %>%
     arrange(reagent_lot)
 
-### 以Shapiro-Wilk Test檢定SD是否為常態分佈
+# data_ep17lod_analysis_basic <- data_ep17lod_tidy_combine %>%
+#     group_by(
+#         sample,
+#         reagent_lot
+#     ) %>%
+#     summarize(
+#         n = length(y),
+#         mean = mean(y),
+#         sd = sd(y),
+#         positivity = length(y[y > setting_ep17$lob]) / n,
+#         median = median(y)
+#     ) %>%
+#     ungroup() %>%
+#     arrange(reagent_lot)
 
-data_ep17lod_analysis_spw <- shapiro.test(
-    data_ep17lod_analysis_sd$sd
-)
+### 以Shapiro-Wilk Test檢定SD是否為常態分佈
+data_ep17lod_analysis[["spw"]] <- shapiro.test(
+    data_ep17lod_analysis[["basic"]]$sd
+)$p.value
+
+
+# data_ep17lod_analysis_spw <- shapiro.test(
+#     data_ep17lod_analysis_basic$sd
+# )
 
 ### 計算cp
-imd <- vector(mode = "list")
-
-imd[["cp"]] <- data.frame(
-    L = sum(data_ep17lod_analysis_basic$n),
+data_ep17lod_analysis[["cp"]] <- data.frame(
+    L = sum(data_ep17lod_analysis[["basic"]]$n),
     J = length(
         levels(
-            factor(data_ep17lod_analysis_basic$sample)
+            factor(data_ep17lod_analysis[["basic"]]$sample)
         )
     )
 ) %>%
@@ -53,11 +73,37 @@ imd[["cp"]] <- data.frame(
         cp = upr / lwr
     )
 
-imd[["rlot_num"]] <- length(
+data_ep17lod_analysis[["cp"]] <- data_ep17lod_analysis[["cp"]]$cp
+
+
+# imd <- vector(mode = "list")
+
+# imd[["cp"]] <- data.frame(
+#     L = sum(data_ep17lod_analysis_basic$n),
+#     J = length(
+#         levels(
+#             factor(data_ep17lod_analysis_basic$sample)
+#         )
+#     )
+# ) %>%
+#     mutate(
+#         upr = qnorm(0.95),
+#         lwr = 1 - (4 * (L - J))^(-1),
+#         cp = upr / lwr
+#     )
+
+### 取出reagent lot數量
+data_ep17lod_analysis[["reagent_lot number"]] <- length(
     levels(
-        factor(data_ep17lod_analysis_basic$reagent_lot)
+        factor(data_ep17lod_analysis[["basic"]]$reagent_lot)
     )
 )
+
+# imd[["rlot_num"]] <- length(
+#     levels(
+#         factor(data_ep17lod_analysis_basic$reagent_lot)
+#     )
+# )
 
 ### 定義計算SDL公式
 get_sdl <- function(data) {
@@ -207,7 +253,8 @@ data_ep17lod_report_tab_raw <- data_ep17lod_analysis_basic %>%
         reagent_lot = "Reagent Lot",
         n = "N",
         mean = "Mean",
-        sd = "SD"
+        sd = "SD",
+        positivity = "Ratio >Lob"
     ) %>%
     add_footer_lines(
         values = paste(
