@@ -22,7 +22,7 @@ output:
 
 - `data_ep17lob_tidy_combine`
 
-### split: 第一層依照reagent_lot拆分，第二層依照sample拆分
+### split: 依照reagent_lot拆分
 
 - `data_ep17lob_tidy_split`
 - 拆分時建立易懂的名稱
@@ -31,72 +31,72 @@ output:
 
 ## analysis: 資料分析
 
-### 定義函數:常態資料計算lob算法(輸出mean, sd, lob)
+### 計算各樣品的Mean & SD
 
-- `get_lob_para()`
+- `data_ep17lod_analysis_basic`
 
-### 定義函數:非常態資料計算lob算法(輸出mean, sd, lob)
+### 以Shapiro-Wilk Test檢定SD是否為常態分佈
 
-- `get_lob_nonpara()`
-
----
-    
-### 以Shapiro-Wilk test確認資料是否為常態(以p-value表示)
-
-- `imd[["spw-p"]]`
-
-### 單取reagent_lot數量 (依數量決定是否一起算)
-
-- `imd[["reagent_lot"]]`
-
-### 單取sample_lot數量(計算公式所需)
-
-- `imd[["sample_lot"]]`
+- `data_ep17lod_analysis_spw`
 
 ---
 
-### if-loop: 區分情況計算lob
+### 計算cp
 
-#### (condition 1) 資料常態 & reaagent_lot >=4: 不分組用get_lob_para()算lob
+- `imd[["cp"]]`
+    - `L`: 總結果筆數
+    - `J`: 樣品數
+    - `upr`: cp分子
+    - `lwr`: cp分母
 
-#### (condition 2) 資料非常態 & reaagent_lot >=4: 不分組用get_lob_nonpara()算lob
+### 計算reagent_lot總數(作為後續if-loop判斷依據)
 
-- `data_ep17lob_analysis_lob`
-- `imd[["crit"]]`
-    - `normality`: 資料是否為常態
-    - `by_lot`: 是否依照reagnet_lot分組分析
+- `imd[["rlot_num"]]`
 
----
+### 定義計算SDL公式
 
-#### (condition 3) 資料常態 & reaagent_lot ≤3: 不分組用get_lob_para()算lob
-
-#### (condition 4) 資料非常態 & reaagent_lot ≤3: 不分組用get_lob_nonpara()算lob
-
-- `imd[["lot_lob"]]`: 計算各lot lob
-- `imd[["crit"]]`
-    - `normality`: 資料是否為常態
-    - `by_lot`: 是否依照reagnet_lot分組分析
+`get_sdl()`:從data_ep17lod_tidy_combine或是data_ep17lod_tidy_split中計算
 
 ---
 
-### if-loop: 若有分批lob則合併並取得final lob
+### if-loop: 若reagent_lot ≤3則分批計算，若≥4則合併計算
 
-- `data_ep17lob_analysis_lob`
+- `data_ep17lod_analysis_lod`: 若reagent_lot ≥4合併計算得到sdl和lod
+- `data_ep17lod_analysis_lod_lot`: 若reagent_lot ≤3則分批計算
+
+### if-loop: 若有data_ep17lod_analysis_lod_lot, 則合併並計算final LoD
+
+- `data_ep17lod_analysis_lod`
 
 ## report_fig: 圖形報表
 
-### 原始資料histogram (看是否有對稱性)
+### raw data (color = reagent lot)
 
-- `data_ep17lob_report_fig_raw`
+- `data_ep17lod_fig_raw`
 
-### qqplot (與常態分佈對比)
+### 濃度 VS SD (color = reagent lot)
 
-- `data_ep17lob_report_fig_qq`
+- `data_ep17lod_fig_sd`
+
+### qqplot of SD
+
+- `data_ep17lod_fig_qq`
 
 ## report_tab: 表格報表
 
-### LoB計算結果
+### 各樣品 x 各濃度的SD表
 
-- `data_ep17lob_report_tab`
+- `data_ep17lod_report_tab_raw`
 
-#### if-loop: 如果`data_ep17lob_analysis_lob`中有`cp`，則格式化+標注單位，若無僅標注單位
+### LoD分析結果
+
+- `data_ep17lod_report_tab_lod`
+
+## report_crit: 結論數字
+
+### Shapiro-Wilk test p-value
+
+- `data_ep17lod_report_crit_spw`
+
+### Final LoD
+- `data_ep17lod_report_crit_lod`

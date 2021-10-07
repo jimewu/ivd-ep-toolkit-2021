@@ -42,7 +42,7 @@ data_ep17lod_tidy_combine <- data_ep17lod_import
 
 ## split by reagent_lot
 data_ep17lod_tidy_split <- data_ep17lod_tidy_combine %>%
-    # 加入分組依據1
+    # 加入分組依據
     mutate(
         split = paste(
             "Regante Lot",
@@ -52,24 +52,8 @@ data_ep17lod_tidy_split <- data_ep17lod_tidy_combine %>%
     split(.$split) %>%
     lapply(
         function(x) {
-            result <- x %>%
-                # 加入分組依據2
-                mutate(
-                    split = paste(
-                        "Sample",
-                        sample
-                    )
-                ) %>%
-                split(.$split) %>%
-                # 拿掉各組split欄位
-                lapply(
-                    function(y) {
-                        y$split <- NULL
+            x$split <- NULL
 
-                        return(y)
-                    }
-                )
-
-            return(result)
+            return(x)
         }
     )
