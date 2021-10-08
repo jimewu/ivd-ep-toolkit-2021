@@ -1,22 +1,6 @@
-source("main_ep17lod.r")
-
-# * Load PKG
-pkg_lst <- c(
-    "dplyr",
-    "flextable",
-    "DT",
-    "ggplot2"
-)
-
-lapply(
-    pkg_lst,
-    library,
-    character.only = TRUE
-)
-
 # * analysis
-### 計算各樣品的Mean, SD, Ratio > LOB, Median
-data_ep17lod_analysis[["basic"]] <- data_ep17lod_tidy[["combine"]] %>%
+## Descriptive Statistics: 計算各樣品的Mean, SD, Ratio > LOB, Median
+ep17lod_analysis[["desc"]] <- ep17lod_tidy[["combine"]] %>%
     group_by(
         sample,
         reagent_lot
@@ -27,43 +11,24 @@ data_ep17lod_analysis[["basic"]] <- data_ep17lod_tidy[["combine"]] %>%
         mean = mean(y),
         sd = sd(y),
         # non-parametric statistics
-        positivity = length(y[y > setting_ep17$lob]) / n,
+        positivity = length(y[y > ep17lod_import[["setting"]]$lob]) / n,
         median = median(y)
     ) %>%
     ungroup() %>%
     arrange(reagent_lot)
 
-# data_ep17lod_analysis_basic <- data_ep17lod_tidy_combine %>%
-#     group_by(
-#         sample,
-#         reagent_lot
-#     ) %>%
-#     summarize(
-#         n = length(y),
-#         mean = mean(y),
-#         sd = sd(y),
-#         positivity = length(y[y > setting_ep17$lob]) / n,
-#         median = median(y)
-#     ) %>%
-#     ungroup() %>%
-#     arrange(reagent_lot)
-
-### 以Shapiro-Wilk Test檢定SD是否為常態分佈
-data_ep17lod_analysis[["spw"]] <- shapiro.test(
-    data_ep17lod_analysis[["basic"]]$sd
+## 以Shapiro-Wilk Test檢定SD是否為常態分佈
+ep17lod_analysis[["spw.p"]] <- shapiro.test(
+    ep17lod_analysis[["desc"]]$sd
 )$p.value
 
 
-# data_ep17lod_analysis_spw <- shapiro.test(
-#     data_ep17lod_analysis_basic$sd
-# )
-
-### 計算cp
-data_ep17lod_analysis[["cp"]] <- data.frame(
-    L = sum(data_ep17lod_analysis[["basic"]]$n),
+## 計算cp
+ep17lod_analysis[["cp"]] <- data.frame(
+    L = sum(ep17lod_analysis[["desc"]]$n),
     J = length(
         levels(
-            factor(data_ep17lod_analysis[["basic"]]$sample)
+            factor(ep17lod_analysis[["desc"]]$sample)
         )
     )
 ) %>%
@@ -73,39 +38,16 @@ data_ep17lod_analysis[["cp"]] <- data.frame(
         cp = upr / lwr
     )
 
-data_ep17lod_analysis[["cp"]] <- data_ep17lod_analysis[["cp"]]$cp
+ep17lod_analysis[["cp"]] <- ep17lod_analysis[["cp"]]$cp
 
-
-# imd <- vector(mode = "list")
-
-# imd[["cp"]] <- data.frame(
-#     L = sum(data_ep17lod_analysis_basic$n),
-#     J = length(
-#         levels(
-#             factor(data_ep17lod_analysis_basic$sample)
-#         )
-#     )
-# ) %>%
-#     mutate(
-#         upr = qnorm(0.95),
-#         lwr = 1 - (4 * (L - J))^(-1),
-#         cp = upr / lwr
-#     )
-
-### 取出reagent lot數量
-data_ep17lod_analysis[["reagent_lot number"]] <- length(
+## 取出reagent lot數量
+ep17lod_analysis[["reagent_lot number"]] <- length(
     levels(
-        factor(data_ep17lod_analysis[["basic"]]$reagent_lot)
+        factor(ep17lod_analysis[["desc"]]$reagent_lot)
     )
 )
 
-# imd[["rlot_num"]] <- length(
-#     levels(
-#         factor(data_ep17lod_analysis_basic$reagent_lot)
-#     )
-# )
-
-### 定義計算SDL公式
+## 定義計算SDL公式
 get_sdl <- function(data) {
     result <- data %>%
         group_by(
@@ -128,33 +70,36 @@ get_sdl <- function(data) {
     return(result)
 }
 
-### if-loop: 若reagent_lot ≤3則分批計算，若≥4則合併計算
+## if-loop:
+### reagent_lot≥4: 合併計算
+### reagent_lot≤3: 分批計算
 if (
-    imd[["rlot_num"]] >= 4
+    ep17lod_analysis[["reagent_lot number"]] >= 4
 ) {
-    data_ep17lod_analysis_lod <- data.frame(
-        cp = imd[["cp"]]$cp,
-        sdl = get_sdl(data_ep17lod_tidy_combine),
-        lod = setting_ep17$lob +
-            sdl * imd[["cp"]]$cp
-    )
+    ep17lod_analysis[["lod"]] <- data.frame(
+        cp = ep17lod_analysis[["cp"]],
+        sdl = get_sdl(ep17lod_tidy[["combine"]])$sdl
+    ) %>%
+        mutate(
+            lod = ep17lod_import[["setting"]]$lob +
+                sdl * cp
+        )
 } else if (
-    imd[["rlot_num"]] <= 3
+    ep17lod_analysis[["reagent_lot number"]] <= 3
 ) {
-    data_ep17lod_analysis_lod_lot <- lapply(
-        data_ep17lod_tidy_split,
+    ep17lod_analysis[["lot lod"]] <- lapply(
+        ep17lod_tidy[["split"]],
         function(x) {
             result <- data.frame(
-                sdl = get_sdl(x)
+                cp = ep17lod_analysis[["cp"]],
+                sdl_lot = get_sdl(x)$sdl
             ) %>%
-                transmute(
-                    sdl_lot = sdl,
-                    lod_lot = setting_ep17$lob +
-                        sdl_lot * imd[["cp"]]$cp
+                mutate(
+                    lod_lot = ep17lod_import[["setting"]]$lob +
+                        sdl_lot * cp
                 ) %>%
                 cbind(
                     reagent_lot = x$reagent_lot[1],
-                    cp = imd[["cp"]]$cp,
                     .
                 )
 
@@ -163,34 +108,55 @@ if (
     )
 }
 
-### if-loop: 若有data_ep17lod_analysis_lod_lot, 則合併並計算final LoD
+## if-loop: 若有ep17lod_analysis[["lot lod"]], 則合併並計算final LoD
 
 if (
-    is.null(data_ep17lod_analysis_lod_lot) == FALSE
+    is.null(ep17lod_analysis[["lot lod"]]) == FALSE
 ) {
-    data_ep17lod_analysis_lod <- data_ep17lod_analysis_lod_lot[[1]]
+    ep17lod_analysis[["lod"]] <- ep17lod_analysis[["lot lod"]][[1]]
 
     for (
-        x in seq(2, length(data_ep17lod_analysis_lod_lot))
+        x in seq(2, length(ep17lod_analysis[["lot lod"]]))
     ) {
-        data_ep17lod_analysis_lod <- rbind(
-            data_ep17lod_analysis_lod,
-            data_ep17lod_analysis_lod_lot[[x]]
+        ep17lod_analysis[["lod"]] <- rbind(
+            ep17lod_analysis[["lod"]],
+            ep17lod_analysis[["lot lod"]][[x]]
         )
     }
 
-    data_ep17lod_analysis_lod <- data_ep17lod_analysis_lod %>%
+    ep17lod_analysis[["lod"]] <- ep17lod_analysis[["lod"]] %>%
         cbind(
             .,
             final_lod = max(.$lod_lot)
         )
 }
 
+## 計算non-parametric option
+ep17lod_analysis[["non-parametric lod"]] <- ep17lod_analysis[["desc"]] %>%
+    select(
+        sample,
+        reagent_lot,
+        n,
+        positivity,
+        median
+    ) %>%
+    group_by(sample) %>%
+    summarize(
+        lod = ifelse(
+            all(
+                positivity > (1 - ep17lod_import[["setting"]]$beta)
+            ),
+            mean(median),
+            NA
+        )
+    ) %>%
+    arrange(lod)
+
 # * report_fig
 
-### raw data (color = reagent lot)
-data_ep17lod_fig_raw <- ggplot(
-    data_ep17lod_tidy_combine,
+## raw data (color = reagent lot)
+ep17lod_report_fig[["raw"]] <- ggplot(
+    ep17lod_tidy[["combine"]],
     aes(
         x = sample,
         y = y,
@@ -202,9 +168,9 @@ data_ep17lod_fig_raw <- ggplot(
     ylab("Measurement Value")
 
 
-### 濃度 VS SD (color = reagent lot)
-data_ep17lod_fig_sd <- ggplot(
-    data_ep17lod_analysis_basic,
+## 濃度 VS SD (color = reagent lot)
+ep17lod_report_fig[["sd"]] <- ggplot(
+    ep17lod_analysis[["desc"]],
     aes(
         x = mean,
         y = sd,
@@ -215,9 +181,9 @@ data_ep17lod_fig_sd <- ggplot(
     xlab("Measurement Values") +
     ylab("SD")
 
-### qqplot of SD
-data_ep17lod_fig_qq <- ggplot(
-    data_ep17lod_analysis_basic,
+## qqplot of SD
+ep17lod_report_fig[["qq"]] <- ggplot(
+    ep17lod_analysis[["desc"]],
     aes(
         sample = sd
     )
@@ -233,9 +199,12 @@ data_ep17lod_fig_qq <- ggplot(
 
 # * report_tab
 
-### 各樣品 x 各濃度的SD表
-data_ep17lod_report_tab_raw <- data_ep17lod_analysis_basic %>%
-    mutate(
+## 各樣品 x 各濃度的parametric descriptive statistics
+ep17lod_report_tab[["raw parametric"]] <- ep17lod_analysis[["desc"]] %>%
+    transmute(
+        sample = sample,
+        reagent_lot = reagent_lot,
+        n = n,
         mean = round(mean, digits = 3),
         sd = round(sd, digits = 3)
     ) %>%
@@ -253,13 +222,17 @@ data_ep17lod_report_tab_raw <- data_ep17lod_analysis_basic %>%
         reagent_lot = "Reagent Lot",
         n = "N",
         mean = "Mean",
-        sd = "SD",
-        positivity = "Ratio >Lob"
+        sd = "SD"
     ) %>%
     add_footer_lines(
         values = paste(
             "unit of mean and SD:",
-            setting_ep17$unit_of_device
+            ep17lod_import[["setting"]]$unit_of_device,
+            "\nShapiro-Wilk Test of SD: p =",
+            round(
+                ep17lod_analysis[["spw.p"]],
+                digits = 3
+            )
         )
     ) %>%
     align(
@@ -267,9 +240,54 @@ data_ep17lod_report_tab_raw <- data_ep17lod_analysis_basic %>%
         part = "footer"
     )
 
-### LoD分析結果
+## 各樣品 x 各濃度的non-parametric descriptive statistics
+ep17lod_report_tab[["raw non-parametric"]] <- ep17lod_analysis[["desc"]] %>%
+    arrange(sample) %>%
+    transmute(
+        sample = sample,
+        reagent_lot = reagent_lot,
+        n = n,
+        positivity = round(positivity, digits = 3),
+        median = round(median, digits = 3)
+    ) %>%
+    flextable() %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
+    ) %>%
+    set_header_labels(
+        sample = "Sample",
+        reagent_lot = "Reagent Lot",
+        n = "N",
+        positivity = "Ratio > LoB",
+        median = "Median"
+    ) %>%
+    add_footer_lines(
+        values = paste(
+            "unit of median:",
+            ep17lod_import[["setting"]]$unit_of_device,
+            "\nShapiro-Wilk Test of SD: p =",
+            round(
+                ep17lod_analysis[["spw.p"]],
+                digits = 3
+            )
+        )
+    ) %>%
+    align(
+        align = "right",
+        part = "footer"
+    )
 
-data_ep17lod_report_tab_lod <- data_ep17lod_analysis_lod %>%
+
+## LoD分析結果
+
+### Parametric
+
+ep17lod_report_tab[["lod parametric"]] <- ep17lod_analysis[["lod"]] %>%
     round(digits = 3) %>%
     flextable() %>%
     align(
@@ -306,7 +324,7 @@ data_ep17lod_report_tab_lod <- data_ep17lod_analysis_lod %>%
     add_footer_lines(
         values = paste(
             "unit of SD and LoD:",
-            setting_ep17$unit_of_device
+            ep17lod_import[["setting"]]$unit_of_device
         )
     ) %>%
     align(
@@ -314,10 +332,55 @@ data_ep17lod_report_tab_lod <- data_ep17lod_analysis_lod %>%
         part = "footer"
     )
 
+### Non-parametric
+
+ep17lod_report_tab[["lod non-parametric"]] <-
+    ep17lod_analysis[["non-parametric lod"]] %>%
+    mutate(
+        lod = round(lod, digits = 3)
+    ) %>%
+    flextable() %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
+    ) %>%
+    merge_v(
+        part = "body"
+    ) %>%
+    set_header_labels(
+        sample = "Sample",
+        lod = "LoD"
+    ) %>%
+    add_footer_lines(
+        values = paste(
+            "unit of LoD:",
+            ep17lod_import[["setting"]]$unit_of_device
+        )
+    ) %>%
+    align(
+        align = "right",
+        part = "footer"
+    )
+
+
 # * report_crit: 結論數字
 
-### Shapiro-Wilk test p-value
-data_ep17lod_report_crit_spw <- data_ep17lod_analysis_spw$p.value
+## Shapiro-Wilk test p-value
 
-### Final LoD
-data_ep17lod_report_crit_lod <- data_ep17lod_analysis_lod$final_lod[1]
+ep17lod_report_crit[["spw p-value"]] <- ep17lod_analysis[["spw.p"]]
+
+## Final LoD
+
+### Parametric
+
+ep17lod_report_crit[["parametric final lod"]] <-
+    ep17lod_analysis[["lod"]]$final_lod[1]
+
+### Non-parametric
+
+ep17lod_report_crit[["non-parametric final lod"]] <-
+    ep17lod_analysis[["non-parametric lod"]]$lod[1]

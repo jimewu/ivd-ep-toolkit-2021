@@ -6,97 +6,176 @@ output:
         slide_level: 2
 ---
 
+```{r setup, ecoh = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    include = TRUE,
+    warning = FALSE
+)
+```
+
+```{r include=FALSE}
+source("main_ep17lod.r")
+```
+
 # main_ep17: 主程式(vary by case)
 
-## setting: 讀取設定 
+# * setting: 
 
-- `setting_ep17`
+## create empty lists
 
-## import: 匯入資料 
+- `ep17lod_setting`
+- `ep17lod_import`
+- `ep17lod_tidy`
+- `ep17lod_analysis`
+- `ep17lod_report_fig`
+- `ep17lod_report_tab`
+- `ep17lod_report_crit`
 
-- `data_ep17lod_import`
+## load pkg
 
-## tidy: 整理資料 
+`ep17lod_setting[["deps"]]`
 
-### combine: 單一表格 
+## set path
 
-- `data_ep17lob_tidy_combine`
+`ep17lod_setting[["path"]]`
 
-### split: 依照reagent_lot拆分
+# * import: 匯入設定 & 資料
 
-- `data_ep17lob_tidy_split`
+## setting
+
+`ep17lod_import[["setting"]]`
+
+## data
+
+`ep17lod_import[["data"]]`
+
+# * tidy: 整理資料 
+
+## combine: 單一表格 
+
+`ep17lod_tidy[["combine"]]`
+
+## split: 依照reagent_lot拆分
+
+`ep17lod_tidy[["split"]]`
+
 - 拆分時建立易懂的名稱
 
 # lib_ep17 (constant)
 
-## analysis: 資料分析
+# * analysis: 資料分析
 
-### 計算各樣品的Mean & SD
+## Descriptive Statistics: 計算各樣品的Mean, SD, Ratio > LOB, Median
 
-- `data_ep17lod_analysis_basic`
+`ep17lod_analysis[["desc"]]`
 
-### 以Shapiro-Wilk Test檢定SD是否為常態分佈
+## 以Shapiro-Wilk Test檢定SD是否為常態分佈
 
-- `data_ep17lod_analysis_spw`
+`ep17lod_analysis[["spw.p"]]`
+
+## 計算cp
+
+`ep17lod_analysis[["cp"]]`
+
+## 取出reagent lot數量(作為後續if-loop判斷依據)
+
+`ep17lod_analysis[["reagent_lot number"]]`
+
+## 定義計算SDL公式
+
+`get_sdl()`
+
+- 從`ep17lod_tidy[["combine"]]`或是`ep17lod_tidy[["split"]]`中計算
+
+## if-loop:
+### reagent_lot≥4: 合併計算
+
+`ep17lod_analysis[["lod"]]`
+
+### reagent_lot≤3: 分批計算
+
+`ep17lod_analysis[["lot lod"]]`
+
+## if-loop: 若有`ep17lod_analysis[["lot lod"]]`, 則合併並計算final LoD
+
+`ep17lod_analysis[["lod"]]`
+
+## 計算non-parametric option
+
+`ep17lod_analysis[["non-parametric lod"]]`
+
+# * report_fig: 圖形報表
+
+## raw data (color = reagent lot)
+
+`ep17lod_report_fig[["raw"]]`
+
+```{r}
+ep17lod_report_fig[["raw"]]
+```
+
+## 濃度 VS SD (color = reagent lot)
+
+`ep17lod_report_fig[["sd"]]`
+
+```{r}
+ep17lod_report_fig[["sd"]]
+```
+
+## qqplot of SD
+
+`ep17lod_report_fig[["qq"]]`
+
+```{r}
+ep17lod_report_fig[["qq"]]
+```
+
+# * report_tab: 表格報表
+
+## 各樣品 x 各濃度的parametric descriptive statistics
+
+`ep17lod_report_tab[["raw parametric"]]`
 
 ---
 
-### 計算cp
+```{r}
+ep17lod_report_tab[["raw parametric"]]
+```
 
-- `imd[["cp"]]`
-    - `L`: 總結果筆數
-    - `J`: 樣品數
-    - `upr`: cp分子
-    - `lwr`: cp分母
+## 各樣品 x 各濃度的non-parametric descriptive statistics
 
-### 計算reagent_lot總數(作為後續if-loop判斷依據)
-
-- `imd[["rlot_num"]]`
-
-### 定義計算SDL公式
-
-`get_sdl()`:從data_ep17lod_tidy_combine或是data_ep17lod_tidy_split中計算
+`ep17lod_report_tab[["raw non-parametric"]]`
 
 ---
 
-### if-loop: 若reagent_lot ≤3則分批計算，若≥4則合併計算
+```{r}
+ep17lod_report_tab[["raw non-parametric"]]
+```
 
-- `data_ep17lod_analysis_lod`: 若reagent_lot ≥4合併計算得到sdl和lod
-- `data_ep17lod_analysis_lod_lot`: 若reagent_lot ≤3則分批計算
+## LoD分析結果
 
-### if-loop: 若有data_ep17lod_analysis_lod_lot, 則合併並計算final LoD
+### Parametric
 
-- `data_ep17lod_analysis_lod`
+`ep17lod_report_tab[["lod parametric"]]`
 
-## report_fig: 圖形報表
+### Non-parametric
 
-### raw data (color = reagent lot)
+`ep17lod_report_tab[["lod non-parametric"]]`
 
-- `data_ep17lod_fig_raw`
 
-### 濃度 VS SD (color = reagent lot)
+# * report_crit: 結論數字
 
-- `data_ep17lod_fig_sd`
+## Shapiro-Wilk test p-value
 
-### qqplot of SD
+`ep17lod_report_crit[["spw p-value"]]`
 
-- `data_ep17lod_fig_qq`
+## Final LoD
 
-## report_tab: 表格報表
+### Parametric
 
-### 各樣品 x 各濃度的SD表
+`ep17lod_report_crit[["parametric final lod"]]`
 
-- `data_ep17lod_report_tab_raw`
+### Non-parametric
 
-### LoD分析結果
-
-- `data_ep17lod_report_tab_lod`
-
-## report_crit: 結論數字
-
-### Shapiro-Wilk test p-value
-
-- `data_ep17lod_report_crit_spw`
-
-### Final LoD
-- `data_ep17lod_report_crit_lod`
+`ep17lod_report_crit[["non-parametric final lod"]]`
