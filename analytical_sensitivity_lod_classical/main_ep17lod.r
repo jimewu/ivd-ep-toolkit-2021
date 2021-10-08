@@ -1,13 +1,12 @@
 # * setting
 ## create empty lists
-ep17lod_setting <- vector(mode = "list")
-ep17lod_import <- vector(mode = "list")
-ep17lod_tidy <- vector(mode = "list")
-ep17lod_analysis <- vector(mode = "list")
-ep17lod_report_fig <- vector(mode = "list")
-ep17lod_report_tab <- vector(mode = "list")
-ep17lod_report_crit <- vector(mode = "list")
-
+ep17lod_setting <- vector(mode = "list") # 相依套件 & 工作路徑
+ep17lod_import <- vector(mode = "list") # 設定值 & 資料
+ep17lod_tidy <- vector(mode = "list") # 合併 & 拆分
+ep17lod_analysis <- vector(mode = "list") # 各種分析
+ep17lod_report_fig <- vector(mode = "list") # 圖報告
+ep17lod_report_tab <- vector(mode = "list") # 表報告
+ep17lod_report_crit <- vector(mode = "list") # 關鍵數據
 
 ## load pkg
 ep17lod_setting[["deps"]] <- c(
