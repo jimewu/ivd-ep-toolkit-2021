@@ -1,5 +1,7 @@
 # * analysis
+
 ## Descriptive Statistics: 計算各樣品的Mean, SD, Ratio > LOB, Median
+
 ep17lod_analysis[["desc"]] <- ep17lod_tidy[["combine"]] %>%
     group_by(
         sample,
@@ -18,12 +20,13 @@ ep17lod_analysis[["desc"]] <- ep17lod_tidy[["combine"]] %>%
     arrange(reagent_lot)
 
 ## 以Shapiro-Wilk Test檢定SD是否為常態分佈
+
 ep17lod_analysis[["spw.p"]] <- shapiro.test(
     ep17lod_analysis[["desc"]]$sd
 )$p.value
 
-
 ## 計算cp
+
 ep17lod_analysis[["cp"]] <- data.frame(
     L = sum(ep17lod_analysis[["desc"]]$n),
     J = length(
@@ -41,13 +44,14 @@ ep17lod_analysis[["cp"]] <- data.frame(
 ep17lod_analysis[["cp"]] <- ep17lod_analysis[["cp"]]$cp
 
 ## 取出reagent lot數量
-ep17lod_analysis[["reagent_lot number"]] <- length(
-    levels(
-        factor(ep17lod_analysis[["desc"]]$reagent_lot)
-    )
-)
+
+ep17lod_analysis[["reagent_lot number"]] <- ep17lod_analysis[["desc"]]$reagent_lot %>%
+    factor() %>%
+    levels() %>%
+    length()
 
 ## 定義計算SDL公式
+
 get_sdl <- function(data) {
     result <- data %>%
         group_by(
@@ -70,12 +74,13 @@ get_sdl <- function(data) {
     return(result)
 }
 
-## if-loop:
-### reagent_lot≥4: 合併計算
-### reagent_lot≤3: 分批計算
+## if-loop
+
 if (
     ep17lod_analysis[["reagent_lot number"]] >= 4
 ) {
+    ### reagent_lot≥4: 合併計算
+
     ep17lod_analysis[["lod"]] <- data.frame(
         cp = ep17lod_analysis[["cp"]],
         sdl = get_sdl(ep17lod_tidy[["combine"]])$sdl
@@ -87,6 +92,8 @@ if (
 } else if (
     ep17lod_analysis[["reagent_lot number"]] <= 3
 ) {
+    ### reagent_lot≤3: 分批計算
+
     ep17lod_analysis[["lot lod"]] <- lapply(
         ep17lod_tidy[["split"]],
         function(x) {
@@ -132,6 +139,7 @@ if (
 }
 
 ## 計算non-parametric option
+
 ep17lod_analysis[["non-parametric lod"]] <- ep17lod_analysis[["desc"]] %>%
     select(
         sample,
@@ -155,6 +163,7 @@ ep17lod_analysis[["non-parametric lod"]] <- ep17lod_analysis[["desc"]] %>%
 # * report_fig
 
 ## raw data (color = reagent lot)
+
 ep17lod_report_fig[["raw"]] <- ggplot(
     ep17lod_tidy[["combine"]],
     aes(
@@ -169,6 +178,7 @@ ep17lod_report_fig[["raw"]] <- ggplot(
 
 
 ## 濃度 VS SD (color = reagent lot)
+
 ep17lod_report_fig[["sd"]] <- ggplot(
     ep17lod_analysis[["desc"]],
     aes(
@@ -182,6 +192,7 @@ ep17lod_report_fig[["sd"]] <- ggplot(
     ylab("SD")
 
 ## qqplot of SD
+
 ep17lod_report_fig[["qq"]] <- ggplot(
     ep17lod_analysis[["desc"]],
     aes(
@@ -200,7 +211,8 @@ ep17lod_report_fig[["qq"]] <- ggplot(
 # * report_tab
 
 ## 各樣品 x 各濃度的parametric descriptive statistics
-ep17lod_report_tab[["raw parametric"]] <- ep17lod_analysis[["desc"]] %>%
+
+ep17lod_report_tab[["desc parametric"]] <- ep17lod_analysis[["desc"]] %>%
     transmute(
         sample = sample,
         reagent_lot = reagent_lot,
@@ -241,7 +253,8 @@ ep17lod_report_tab[["raw parametric"]] <- ep17lod_analysis[["desc"]] %>%
     )
 
 ## 各樣品 x 各濃度的non-parametric descriptive statistics
-ep17lod_report_tab[["raw non-parametric"]] <- ep17lod_analysis[["desc"]] %>%
+
+ep17lod_report_tab[["desc non-parametric"]] <- ep17lod_analysis[["desc"]] %>%
     arrange(sample) %>%
     transmute(
         sample = sample,
