@@ -1,34 +1,17 @@
-source("ep9_main.r")
-
-# ! tmp
-# * Load PKG
-pkg_lst <- c(
-    "dplyr",
-    "DT",
-    "flextable",
-    "ggplot2",
-    "EnvStats",
-    "mcr"
-)
-
-lapply(
-    pkg_lst,
-    library,
-    character.only = TRUE
-)
-
 # * analysis
+
 ## Rosner's Test for Outliers
-data_ep9_analysis_rosner <- lapply(
+
+ep9_analysis[["rosner"]] <- lapply(
     list(
         diff = "diff",
         pctdiff = "pctdiff"
     ),
     function(x) {
         result <- rosnerTest(
-            data_ep9_tidy[, x],
+            ep9_tidy[["combine"]][, x],
             k = floor(
-                0.05 * length(data_ep9_tidy$y_test)
+                0.05 * length(ep9_tidy[["combine"]]$y_test)
             )
         )$all.stats
 
@@ -40,7 +23,9 @@ data_ep9_analysis_rosner <- lapply(
     }
 )
 
-data_ep9_analysis_mcreg <- lapply(
+## regression analysis for method comparison
+
+ep9_analysis[["regression"]] <- lapply(
     list(
         LinReg = data.frame(
             method.reg = "LinReg",
@@ -66,18 +51,19 @@ data_ep9_analysis_mcreg <- lapply(
     function(x) {
         result <- vector(mode = "list")
 
-        result[["raw"]] <- mcreg(
-            x = data_ep9_tidy$y_ref,
-            y = data_ep9_tidy$y_test,
-            mref.name = setting_ep9$name_of_ref,
-            mtest.name = setting_ep9$name_of_test,
-            error.ratio = setting_ep9$repeatability / setting_ep9$repeatability_ref,
+        result[["mcreg"]] <- mcreg(
+            x = ep9_tidy[["combine"]]$y_ref,
+            y = ep9_tidy[["combine"]]$y_test,
+            mref.name = ep9_import[["setting"]]$name_of_ref,
+            mtest.name = ep9_import[["setting"]]$name_of_test,
+            error.ratio = ep9_import[["setting"]]$repeatability /
+                ep9_import[["setting"]]$repeatability_ref,
             alpha = 0.05,
             method.reg = x$method.reg,
             method.ci = x$method.ci
         )
 
-        result[["coef"]] <- result[["raw"]] %>%
+        result[["coef"]] <- result[["mcreg"]] %>%
             MCResult.getCoefficients() %>%
             as.data.frame() %>%
             cbind(
@@ -98,9 +84,11 @@ data_ep9_analysis_mcreg <- lapply(
 )
 
 # * report_critical
+
 ## Candidate Outliers based on Diff
-data_ep9_report_crit_outlier <- lapply(
-    data_ep9_analysis_rosner,
+
+ep9_report_crit[["outlier"]] <- lapply(
+    ep9_analysis[["rosner"]],
     function(x) {
         result <- x[
             x$Outlier == TRUE,
@@ -117,11 +105,10 @@ data_ep9_report_crit_outlier <- lapply(
     }
 )
 
-
-
 # * report_tab
-data_ep9_report_tab_rosner <- lapply(
-    data_ep9_analysis_rosner,
+
+ep9_report_tab[["rosner"]] <- lapply(
+    ep9_analysis[["rosner"]],
     function(x) {
         # 對數值欄取到小數第三位
         for (
@@ -141,9 +128,10 @@ data_ep9_report_tab_rosner <- lapply(
     }
 )
 
-# * report_tab_dt
-data_ep9_report_tab_rosner_dt <- lapply(
-    data_ep9_report_tab_rosner,
+## DT版本
+
+ep9_report_tab[["rosner DT"]] <- lapply(
+    ep9_report_tab[["rosner"]],
     function(x) {
         result <- datatable(
             x,
@@ -154,33 +142,34 @@ data_ep9_report_tab_rosner_dt <- lapply(
     }
 )
 
-
-
 # * report_fig
+
 ## 原始結果圖
-data_ep9_report_fig_raw <- ggplot(
-    data_ep9_tidy,
+
+ep9_report_fig[["raw"]] <- ggplot(
+    ep9_tidy[["combine"]],
     aes(
         x = y_ref,
         y = y_test
     )
 ) +
     geom_point() +
-    xlab(setting_ep9$name_of_ref) +
-    ylab(setting_ep9$name_of_test)
+    xlab(ep9_import[["setting"]]$name_of_ref) +
+    ylab(ep9_import[["setting"]]$name_of_test)
 
 ## difference plot
-data_ep9_report_fig_diff <- ggplot(
+
+ep9_report_fig[["difference"]] <- ggplot(
     rbind(
         diff = data.frame(
             type_x = "Measurement Value",
-            x = data_ep9_tidy$y_ref,
-            y = data_ep9_tidy$diff
+            x = ep9_tidy[["combine"]]$y_ref,
+            y = ep9_tidy[["combine"]]$diff
         ),
         odr_diff = data.frame(
             type_x = "Ordered Measurement",
-            x = data_ep9_tidy$order,
-            y = data_ep9_tidy$diff
+            x = ep9_tidy[["combine"]]$order,
+            y = ep9_tidy[["combine"]]$diff
         )
     ),
     aes(
@@ -193,101 +182,77 @@ data_ep9_report_fig_diff <- ggplot(
         yintercept = 0,
         alpha = 0.5
     ) +
-    facet_wrap(
-        ~type_x,
-        scales = "free"
-    )
-
-data_ep9_report_fig_pctdiff <- ggplot(
-    rbind(
-        pctdiff = data.frame(
-            type_x = "Measurement Value",
-            x = data_ep9_tidy$y_ref,
-            y = data_ep9_tidy$pctdiff
-        ),
-        odr_pctdiff = data.frame(
-            type_x = "Ordered Measurement",
-            x = data_ep9_tidy$order,
-            y = data_ep9_tidy$pctdiff
-        )
-    ),
-    aes(
-        x = x,
-        y = y
-    )
-) +
-    geom_point() +
     geom_hline(
-        yintercept = 0,
-        alpha = 0.5
-    ) +
-    facet_wrap(
-        ~type_x,
-        scales = "free"
-    )
-
-
-
-
-
-data_ep9_report_fig_diff <- ggplot(
-    data_ep9_tidy,
-    aes(
-        x = y_ref,
-        y = diff
-    )
-) +
-    geom_point() +
-    xlab(setting_ep9$name_of_ref) +
-    ylab(paste(
-        "Difference (",
-        setting_ep9$unit_of_device,
-        ")",
-        sep = ""
-    )) +
-    geom_hline(
-        yintercept = 0,
-        alpha = 0.5
-    ) +
-    geom_hline(
-        yintercept = sd(data_ep9_tidy$diff) * c(
+        yintercept = sd(ep9_tidy[["combine"]]$diff) * c(
             -3, -2, -1, 1, 2, 3
         ),
         alpha = 0.5,
         linetype = 2
+    ) +
+    xlab(ep9_import[["setting"]]$name_of_ref) +
+    ylab(paste(
+        "Difference (",
+        ep9_import[["setting"]]$unit_of_device,
+        ")",
+        sep = ""
+    )) +
+    facet_wrap(
+        ~type_x,
+        scales = "free"
     )
 
 ## %difference plot
-data_ep9_report_fig_pctdiff <- ggplot(
-    data_ep9_tidy,
+
+ep9_report_fig[["%difference"]] <- ggplot(
+    rbind(
+        pctdiff = data.frame(
+            type_x = "Measurement Value",
+            x = ep9_tidy[["combine"]]$y_ref,
+            y = ep9_tidy[["combine"]]$pctdiff
+        ),
+        odr_pctdiff = data.frame(
+            type_x = "Ordered Measurement",
+            x = ep9_tidy[["combine"]]$order,
+            y = ep9_tidy[["combine"]]$pctdiff
+        )
+    ),
     aes(
-        x = y_ref,
-        y = pctdiff
+        x = x,
+        y = y
     )
 ) +
     geom_point() +
-    xlab(setting_ep9$name_of_ref) +
+    geom_hline(
+        yintercept = 0,
+        alpha = 0.5
+    ) +
+    geom_hline(
+        yintercept = sd(ep9_tidy[["combine"]]$pctdiff) * c(
+            -3, -2, -1, 1, 2, 3
+        ),
+        alpha = 0.5,
+        linetype = 2
+    ) +
+    xlab(ep9_import[["setting"]]$name_of_ref) +
     ylab("Difference (%)") +
     geom_hline(
         yintercept = 0,
         alpha = 0.5
     ) +
-    geom_hline(
-        yintercept = sd(data_ep9_tidy$pctdiff) * c(
-            -3, -2, -1, 1, 2, 3
-        ),
-        alpha = 0.5,
-        linetype = 2
+    facet_wrap(
+        ~type_x,
+        scales = "free"
     )
 
 # compareFit
-data_report_fig_comparefit_fun <-
-    function(x = data_ep9_analysis_mcreg) {
+
+ep9_report_fig[["comparefit fun"]] <-
+    function(x = ep9_analysis[["regression"]]) {
         compareFit(
-            x[["PaBa"]][["raw"]],
-            x[["WDeming"]][["raw"]],
-            x[["WLinReg"]][["raw"]],
-            x[["Deming"]][["raw"]],
-            x[["LinReg"]][["raw"]]
+            x[["PaBa"]][["mcreg"]],
+            x[["WDeming"]][["mcreg"]],
+            x[["WLinReg"]][["mcreg"]],
+            x[["Deming"]][["mcreg"]],
+            x[["LinReg"]][["mcreg"]]
         )
     }

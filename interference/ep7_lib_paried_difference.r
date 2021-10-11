@@ -1,27 +1,12 @@
-source("ep7_main.r")
-
-# ! tmp
-# * Load PKG
-pkg_lst <- c(
-    "dplyr",
-    "DT",
-    "flextable",
-    "ggplot2"
-)
-
-lapply(
-    pkg_lst,
-    library,
-    character.only = TRUE
-)
-
 # * analysis
-## 依照CLSI EP7Ed3E Table 3
-## 計算y_control & y_test: mean, sd
-## 對比y_control VS y_test:
-## diff, diff_lwr, diff_upr,
-## pct_diff, pct_diff_lwr, pct_diff_upr
-data_ep7_analysis_diff <- data_ep7_tidy_combine %>%
+
+## paired difference分析
+
+### 依照CLSI EP7Ed3E Table 3
+### 對比y_control VS y_test
+
+ep7_analysis[["paired difference"]] <-
+    ep7_tidy[["combine"]] %>%
     group_by(
         condition,
         interferent,
@@ -55,8 +40,11 @@ data_ep7_analysis_diff <- data_ep7_tidy_combine %>%
     ungroup()
 
 # * report_tab
+
 ## Difference表格
-data_ep7_report_tab_diff <- data_ep7_analysis_diff %>%
+
+ep7_report_tab[["paired difference"]] <-
+    ep7_analysis[["paired difference"]] %>%
     transmute(
         Interferent = interferent,
         "Interferent Level" = interferent_level,
@@ -91,14 +79,18 @@ data_ep7_report_tab_diff <- data_ep7_analysis_diff %>%
         )
     )
 
-data_ep7_report_tab_diff_dt <- datatable(
-    data_ep7_report_tab_diff,
-    rownames = FALSE
-)
+ep7_report_tab[["paired difference DT"]] <-
+    datatable(
+        ep7_report_tab[["paired difference"]],
+        rownames = FALSE
+    )
 
 ## Percentage Difference表格
+
 ## Difference表格
-data_ep7_report_tab_pctdiff <- data_ep7_analysis_diff %>%
+
+ep7_report_tab[["paired %difference"]] <-
+    ep7_analysis[["paired difference"]] %>%
     transmute(
         Interferent = interferent,
         "Interferent Level" = interferent_level,
@@ -133,7 +125,7 @@ data_ep7_report_tab_pctdiff <- data_ep7_analysis_diff %>%
         )
     )
 
-data_ep7_report_tab_pctdiff_dt <- datatable(
-    data_ep7_report_tab_pctdiff,
+ep7_report_tab[["paired %difference DT"]] <- datatable(
+    ep7_report_tab[["paired %difference"]],
     rownames = FALSE
 )

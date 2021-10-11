@@ -10,7 +10,6 @@ ep17lob_report_fig <- vector(mode = "list") # 圖報告
 ep17lob_report_tab <- vector(mode = "list") # 表報告
 ep17lob_report_crit <- vector(mode = "list") # 關鍵數據
 
-
 ## load pkg
 
 ep17lob_setting[["deps"]] <- c(

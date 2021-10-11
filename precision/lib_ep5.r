@@ -1,27 +1,17 @@
-# * Load PKG
-pkg_lst <- c(
-    "dplyr",
-    "flextable",
-    "DT",
-    "VCA",
-    "ggplot2"
-)
-
-lapply(
-    pkg_lst,
-    library,
-    character.only = TRUE
-)
-
 # * analysis
+
 ## Nested ANOVA
-data_ep5_analysis <- lapply(
-    data_ep5_tidy_split,
+
+ep5_analysis[["anova"]] <- lapply(
+    ep5_tidy[["split"]],
     function(x) {
+        # 計算factor數量(不包含replicate)
         colindex_factor <- colnames(x) %>%
             grep("factor", .)
 
         num_factor <- length(colindex_factor)
+
+        x <- as.data.frame(x)
 
         if (num_factor == 2) {
             anova <- anovaVCA(
@@ -52,8 +42,11 @@ data_ep5_analysis <- lapply(
 )
 
 # * report_fig
-data_ep5_report_fig_raw <- ggplot(
-    data_ep5_tidy_combine,
+
+## raw data
+
+ep5_report_fig[["raw"]] <- ggplot(
+    ep5_tidy[["combine"]],
     aes(
         x = factor1,
         y = y,
@@ -66,17 +59,17 @@ data_ep5_report_fig_raw <- ggplot(
         scales = "free",
         ncol = 1
     ) +
-    xlab(setting_ep5$name_of_factors[1]) +
-    ylab(setting_ep5$unit_of_device[1]) +
+    xlab(ep5_import[["setting"]]$name_of_factors[1]) +
+    ylab(ep5_import[["setting"]]$unit_of_device[1]) +
     labs(
-        color = setting_ep5$name_of_factors[2]
+        color = ep5_import[["setting"]]$name_of_factors[2]
     ) +
     scale_x_continuous(
         breaks = seq(1, 20, by = 1)
     )
 
-data_ep5_report_fig_lj <- ggplot(
-    data_ep5_tidy_combine,
+ep5_report_fig[["levey-jennings"]] <- ggplot(
+    ep5_tidy[["combine"]],
     aes(
         x = factor1,
         y = y_lj,
@@ -103,10 +96,10 @@ data_ep5_report_fig_lj <- ggplot(
         alpha = 0.3,
         linetype = 2
     ) +
-    xlab(setting_ep5$name_of_factors[1]) +
+    xlab(ep5_import[["setting"]]$name_of_factors[1]) +
     ylab("Levey-Jennings Scale") +
     labs(
-        color = setting_ep5$name_of_factors[2]
+        color = ep5_import[["setting"]]$name_of_factors[2]
     ) +
     scale_y_continuous(
         breaks = seq(-3, 3, by = 1)
@@ -116,22 +109,28 @@ data_ep5_report_fig_lj <- ggplot(
     )
 
 # * report_tab
-## 加入前置欄位以方便識別
-data_ep5_report_tab_split <- lapply(
-    seq(1, length(data_ep5_analysis)),
+
+## 各個sample的ANOVA結果
+
+ep5_report_tab[["anova split"]] <- lapply(
+    seq(
+        1, length(ep5_analysis[["anova"]])
+    ),
     function(x) {
         # 調整列的順序，total移到最下面
-        data <- data_ep5_analysis[[x]][
+        data <- ep5_analysis[["anova"]][[x]][
             c(
-                seq(2, nrow(data_ep5_analysis[[x]])),
+                seq(
+                    2, nrow(ep5_analysis[["anova"]][[x]])
+                ),
                 1
             ),
         ]
-
-        cbind(
-            Sample = names(data_ep5_analysis)[x],
+        # 增加欄位以增加易讀性
+        result <- cbind(
+            Sample = names(ep5_analysis[["anova"]])[x],
             Item = c(
-                setting_ep5$name_of_factors,
+                ep5_import[["setting"]]$name_of_factors,
                 "Error",
                 "Total"
             ),
@@ -143,57 +142,31 @@ data_ep5_report_tab_split <- lapply(
     }
 )
 
-# * data_report_tab
+## 合併
+
 if (
-    length(data_ep5_report_tab_split) == 1
+    length(ep5_report_tab[["anova split"]]) == 1
 ) {
-    data_ep5_report_tab <- data_ep5_report_tab_split[[1]]
+    ep5_report_tab[["anova combine"]] <- ep5_report_tab[["anova split"]][[1]]
 } else if (
-    length(data_ep5_report_tab_split) > 1
+    length(ep5_report_tab[["anova split"]]) > 1
 ) {
-    data_ep5_report_tab <- data_ep5_report_tab_split[[1]]
+    ep5_report_tab[["anova combine"]] <- ep5_report_tab[["anova split"]][[1]]
 
     for (
-        x in seq(2, length(data_ep5_report_tab_split))
+        x in seq(
+            2, length(ep5_report_tab[["anova split"]])
+        )
     ) {
-        data_ep5_report_tab <- rbind(
-            data_ep5_report_tab,
-            data_ep5_report_tab_split[[x]]
+        ep5_report_tab[["anova combine"]] <- rbind(
+            ep5_report_tab[["anova combine"]],
+            ep5_report_tab[["anova split"]][[x]]
         )
     }
 }
 
 ## 使用datatable產生動態表格
-data_ep5_report_tab <- data_ep5_report_tab %>%
+ep5_report_tab[["anova combine"]] <- ep5_report_tab[["anova combine"]] %>%
     datatable(
         rownames = FALSE
     )
-
-
-# data_ep5_report_tab <- data_ep5_report_tab %>%
-#     flextable() %>%
-#     merge_v(j = "Sample") %>%
-#     align(
-#         align = "center",
-#         part = "all"
-#     ) %>%
-#     footnote(
-#         part = "header",
-#         j = c(
-#             "DF",
-#             "SS",
-#             "MS",
-#             "VC"
-#         ),
-#         value = as_paragraph(
-#             c(
-#                 "Degrees of freedom",
-#                 "sum of squares",
-#                 "mean squares",
-#                 "variance components"
-#             )
-#         ),
-#         ref_symbols = c("a", "b", "c", "d"),
-#         inline = TRUE,
-#         sep = "; "
-#     )

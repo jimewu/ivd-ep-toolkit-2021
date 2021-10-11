@@ -1,46 +1,65 @@
-# * Load PKG
-pkg_lst <- c(
+# * setting
+
+## create empty lists
+
+ep7_setting <- vector(mode = "list") # 相依套件 & 工作路徑
+ep7_import <- vector(mode = "list") # 設定值 & 資料
+ep7_tidy <- vector(mode = "list") # 合併 & 拆分
+ep7_analysis <- vector(mode = "list") # 各種分析
+# ep7_report_fig <- vector(mode = "list") # 圖報告
+ep7_report_tab <- vector(mode = "list") # 表報告
+ep7_report_crit <- vector(mode = "list") # 關鍵數據
+
+## load pkg
+
+ep7_setting[["deps"]] <- c(
     "readODS",
     "dplyr",
-    "here"
+    "here",
+    "flextable",
+    "gtsummary",
+    "DT",
+    "ggplot2"
 )
 
 lapply(
-    pkg_lst,
+    ep7_setting[["deps"]],
     library,
     character.only = TRUE
 )
 
-# * path setting
+## set path
 
-## 從git root設定路徑
+ep7_setting[["path"]] <- paste(
+    git = here(),
+    category = "interference",
+    sep = "/"
+) %>%
+    setwd()
 
-setwd(
-    paste(
-        git = here(),
-        category = "interference",
-        sep = "/"
-    )
-)
+# * import
 
-# * setting_ep7
+## setting
 
-setting_ep7 <- read_ods(
+ep7_import[["setting"]] <- read_ods(
     "input.ods",
     sheet = "setting_ep7"
 )
 
-# * import
-## 讀取資料
-data_ep7_import <- read_ods(
+## data
+
+### case-specific: 不同樣品 & 不同的 data 日期
+
+ep7_import[["data"]] <- read_ods(
     "input.ods",
     sheet = "data_ep7"
 )
 
-
 # * tidy
-## 依照interferent, interferent_level, analyte_level分組
-data_ep7_tidy_combine <- data_ep7_import %>%
+
+## combine
+
+ep7_tidy[["combine"]] <- ep7_import[["data"]] %>%
     mutate(
         condition = paste(
             interferent,
@@ -52,5 +71,11 @@ data_ep7_tidy_combine <- data_ep7_import %>%
         )
     )
 
-data_ep7_tidy_split <- data_ep7_tidy_combine %>%
+## split: 依照interferent, interferent_level, analyte_level分組
+
+ep7_tidy[["split"]] <- ep7_tidy[["combine"]] %>%
     split(.$condition)
+
+
+source("ep7_lib_replicate_calculator.r")
+source("ep7_lib_paried_difference.r")

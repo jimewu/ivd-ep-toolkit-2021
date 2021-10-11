@@ -66,14 +66,16 @@ ep17lob_analysis[["spw.p"]] <- shapiro.test(
 
 ## 取出reagent_lot數量
 
-ep17lob_analysis[["reagent_lot number"]] <- ep17lob_tidy[["combine"]]$reagent_lot %>%
+ep17lob_analysis[["reagent_lot number"]] <-
+    ep17lob_tidy[["combine"]]$reagent_lot %>%
     factor() %>%
     levels() %>%
     length()
 
 ## 取出sample_lot數量
 
-ep17lob_analysis[["sample_lot number"]] <- ep17lob_tidy[["combine"]]$sample_lot %>%
+ep17lob_analysis[["sample_lot number"]] <-
+    ep17lob_tidy[["combine"]]$sample_lot %>%
     factor() %>%
     levels() %>%
     length()

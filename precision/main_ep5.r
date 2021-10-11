@@ -1,80 +1,75 @@
-# * load pkg
-pkg_lst <- c(
+# * setting
+
+## create empty lists
+
+ep5_setting <- vector(mode = "list") # 相依套件 & 工作路徑
+ep5_import <- vector(mode = "list") # 設定值 & 資料
+ep5_tidy <- vector(mode = "list") # 合併 & 拆分
+ep5_analysis <- vector(mode = "list") # 各種分析
+ep5_report_fig <- vector(mode = "list") # 圖報告
+ep5_report_tab <- vector(mode = "list") # 表報告
+ep5_report_crit <- vector(mode = "list") # 關鍵數據
+
+## load pkg
+
+ep5_setting[["deps"]] <- c(
     "readODS",
     "dplyr",
-    "here"
+    "here",
+    "flextable",
+    "DT",
+    "VCA",
+    "ggplot2"
 )
 
 lapply(
-    pkg_lst,
+    ep5_setting[["deps"]],
     library,
     character.only = TRUE
 )
 
-# * set path
-setwd(
-    paste(
-        git = here(),
-        category = "precision",
-        sep = "/"
-    )
-)
+## set path
 
-# * setting_import
+ep5_setting[["path"]] <- paste(
+    git = here(),
+    category = "precision",
+    sep = "/"
+) %>%
+    setwd()
 
-setting_ep5 <- read_ods(
+# * import
+
+## setting
+
+ep5_import[["setting"]] <- read_ods(
     "input.ods",
     sheet = "setting_ep5"
 )
 
-# * data_import
-## case-specific: 不同樣品 & 不同的 data 日期
+## data
 
-data_ep5_import <- read_ods(
+### case-specific: 不同樣品 & 不同的 data 日期
+
+ep5_import[["data"]] <- read_ods(
     "input.ods",
     sheet = "data_ep5"
 )
 
-# * data_tidy
+# * tidy
 
 ## combine
-data_ep5_tidy_combine <- data_ep5_import
+
+ep5_tidy[["combine"]] <- ep5_import[["data"]] %>%
+    group_by(sample) %>%
+    # add y_lj as Levey-Jennings Scale
+    mutate(
+        y_lj = (y - mean(y)) / sd(y)
+    ) %>%
+    ungroup()
 
 ## split by sample
-data_ep5_tidy_split <- data_ep5_tidy_combine %>%
+
+ep5_tidy[["split"]] <- ep5_tidy[["combine"]] %>%
     split(.$sample)
-
-## convert y to Levey-Jennings Scale
-data_ep5_tidy_split <- lapply(
-    data_ep5_tidy_split,
-    function(x) {
-        result <- x %>%
-            mutate(
-                y_lj = (y - mean(x$y)) / sd(x$y)
-            )
-
-        return(result)
-    }
-)
-
-## add y_lj back to data_combine
-if (
-    length(data_ep5_tidy_split) == 1
-) {
-    data_ep5_tidy_combine <- data_ep5_tidy_split[[1]]
-} else if (
-    length(data_ep5_tidy_split) > 1
-) {
-    data_ep5_tidy_combine <- data_ep5_tidy_split[[1]]
-
-    for (
-        x in seq(2, length(data_ep5_tidy_split))
-    ) {
-        data_ep5_tidy_combine <- rbind(
-            data_ep5_tidy_combine,
-            data_ep5_tidy_split[[x]]
-        )
-    }
-}
 
 source("lib_ep5.r")
