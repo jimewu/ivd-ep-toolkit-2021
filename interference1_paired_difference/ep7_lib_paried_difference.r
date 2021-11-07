@@ -8,9 +8,6 @@
 ep7_analysis[["paired difference"]] <-
     ep7_tidy[["combine"]] %>%
     group_by(
-        condition,
-        interferent,
-        interferent_level,
         analyte_level
     ) %>%
     summarise(
@@ -46,8 +43,6 @@ ep7_analysis[["paired difference"]] <-
 ep7_report_tab[["paired difference"]] <-
     ep7_analysis[["paired difference"]] %>%
     transmute(
-        Interferent = interferent,
-        "Interferent Level" = interferent_level,
         "Analyte Level" = analyte_level,
         "Test Mean" = round(
             test_mean,
@@ -79,6 +74,19 @@ ep7_report_tab[["paired difference"]] <-
         )
     )
 
+ep7_report_tab[["paired difference FT"]] <-
+    ep7_report_tab[["paired difference"]] %>%
+    flextable() %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
+    )
+
+
 ep7_report_tab[["paired difference DT"]] <-
     datatable(
         ep7_report_tab[["paired difference"]],
@@ -92,8 +100,6 @@ ep7_report_tab[["paired difference DT"]] <-
 ep7_report_tab[["paired %difference"]] <-
     ep7_analysis[["paired difference"]] %>%
     transmute(
-        Interferent = interferent,
-        "Interferent Level" = interferent_level,
         "Analyte Level" = analyte_level,
         "Test Mean" = round(
             test_mean,
@@ -124,6 +130,19 @@ ep7_report_tab[["paired %difference"]] <-
             digits = 3
         )
     )
+
+ep7_report_tab[["paired %difference FT"]] <-
+    ep7_report_tab[["paired %difference"]] %>%
+    flextable() %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
+    )
+
 
 ep7_report_tab[["paired %difference DT"]] <- datatable(
     ep7_report_tab[["paired %difference"]],

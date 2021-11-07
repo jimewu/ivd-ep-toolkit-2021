@@ -110,6 +110,24 @@ ep5_report_fig[["levey-jennings"]] <- ggplot(
 
 # * report_tab
 
+ep5_report_tab[["raw"]] <- ep5_tidy[["combine"]] %>%
+    mutate(
+        y_lj = round(
+            y_lj,
+            digits = 3
+        )
+    ) %>%
+    datatable(
+        options = list(scrollY = "375px"),
+        colnames = c(
+            "Sample",
+            ep5_import[["setting"]]$name_of_factors,
+            "Replicate",
+            "y",
+            "LJ Scale"
+        )
+    )
+
 ## 各個sample的ANOVA結果
 
 ep5_report_tab[["anova split"]] <- lapply(
@@ -167,6 +185,15 @@ if (
 
 ## 使用datatable產生動態表格
 ep5_report_tab[["anova combine"]] <- ep5_report_tab[["anova combine"]] %>%
-    datatable(
-        rownames = FALSE
+    flextable() %>%
+    merge_v(
+        part = "body"
+    ) %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
     )

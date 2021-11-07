@@ -6,7 +6,7 @@ ep7_setting <- vector(mode = "list") # 相依套件 & 工作路徑
 ep7_import <- vector(mode = "list") # 設定值 & 資料
 ep7_tidy <- vector(mode = "list") # 合併 & 拆分
 ep7_analysis <- vector(mode = "list") # 各種分析
-# ep7_report_fig <- vector(mode = "list") # 圖報告
+ep7_report_fig <- vector(mode = "list") # 圖報告
 ep7_report_tab <- vector(mode = "list") # 表報告
 ep7_report_crit <- vector(mode = "list") # 關鍵數據
 
@@ -32,7 +32,7 @@ lapply(
 
 ep7_setting[["path"]] <- paste(
     git = here(),
-    category = "interference",
+    category = "interference2_dose_response",
     sep = "/"
 ) %>%
     setwd()
@@ -59,23 +59,12 @@ ep7_import[["data"]] <- read_ods(
 
 ## combine
 
-ep7_tidy[["combine"]] <- ep7_import[["data"]] %>%
-    mutate(
-        condition = paste(
-            interferent,
-            ": ",
-            interferent_level,
-            " x analyte: ",
-            analyte_level,
-            sep = ""
-        )
-    )
+ep7_tidy[["combine"]] <- ep7_import[["data"]]
 
 ## split: 依照interferent, interferent_level, analyte_level分組
 
 ep7_tidy[["split"]] <- ep7_tidy[["combine"]] %>%
-    split(.$condition)
+    split(.$interferent_level)
 
 
-source("ep7_lib_replicate_calculator.r")
-source("ep7_lib_paried_difference.r")
+source("ep7_lib_dose_response.r")
