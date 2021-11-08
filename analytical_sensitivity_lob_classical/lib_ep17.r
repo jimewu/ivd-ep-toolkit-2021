@@ -80,120 +80,204 @@ ep17lob_analysis[["sample_lot number"]] <-
     levels() %>%
     length()
 
-## if-loop: 區分情況計算lob
+## 計算lob
 
-if (
-    # 條件1:資料為常態
-    ep17lob_analysis[["spw.p"]] >= 0.05 &
-        ## 條件2: reagent_lot ≥4
-        ep17lob_analysis[["reagent_lot number"]] >= 4
-) {
-    # 則不分批計算常態lob
-    ep17lob_analysis[["lob"]] <- get_lob_para(
-        ep17lob_tidy[["combine"]]$y,
-        ep17lob_analysis[["sample_lot number"]]
-    )
+### parametric all in 1
+ep17lob_analysis[["lob para 1"]] <- get_lob_para(
+    ep17lob_tidy[["combine"]]$y,
+    ep17lob_analysis[["sample_lot number"]]
+)
 
-    # 紀錄狀況判斷結果
-    ep17lob_analysis[["crit"]] <- data.frame(
-        normality = TRUE,
-        by_lot = FALSE
-    )
-} else if (
-    # 條件1:資料為非常態
-    ep17lob_analysis[["spw.p"]] < 0.05 &
-        ## 條件2: reagent_lot ≥4
-        ep17lob_analysis[["reagent_lot number"]] >= 4
-) {
-    # 則不分批計算非常態lob
-    ep17lob_analysis[["lob"]] <- get_lob_nonpara(
-        ep17lob_tidy[["combine"]]$y
-    )
+### nonparametric all in 1
+ep17lob_analysis[["lob nonpara 1"]] <- get_lob_nonpara(
+    ep17lob_tidy[["combine"]]$y
+)
 
-    # 紀錄狀況判斷結果
-    ep17lob_analysis[["crit"]] <- data.frame(
-        normality = FALSE,
-        by_lot = FALSE
-    )
-} else if (
-    # 條件1:資料為常態
-    ep17lob_analysis[["spw.p"]] >= 0.05 &
-        ## 條件2: reagent_lot ≤3
-        ep17lob_analysis[["reagent_lot number"]] <= 3
-) {
-    # 則分批計算常態lob
-    ep17lob_analysis[["lot lob"]] <- lapply(
-        ep17lob_tidy[["split"]],
-        function(x) {
-            sample_lot <- x$sample_lot %>%
-                factor() %>%
-                levels() %>%
-                length()
+### parametric lot
+ep17lob_analysis[["lob para lot split"]] <- lapply(
+    ep17lob_tidy[["split"]],
+    function(x) {
+        sample_lot <- x$sample_lot %>%
+            factor() %>%
+            levels() %>%
+            length()
 
-            result <- get_lob_para(
-                x$y,
-                sample_lot
-            )
-        }
-    )
-
-    # 紀錄狀況判斷結果
-    ep17lob_analysis[["crit"]] <- data.frame(
-        normality = TRUE,
-        by_lot = TRUE
-    )
-} else if (
-    # 條件1:資料為非常態
-    ep17lob_analysis[["spw.p"]] < 0.05 &
-        ## 條件2: reagent_lot ≤3
-        ep17lob_analysis[["reagent_lot number"]] <= 3
-) {
-    # 則分批計算非常態lob
-    ep17lob_analysis[["lot lob"]] <- lapply(
-        ep17lob_tidy[["split"]],
-        function(x) {
-            result <- get_lob_nonpara(x$y)
-        }
-    )
-
-    # 紀錄狀況判斷結果
-    ep17lob_analysis[["crit"]] <- data.frame(
-        normality = FALSE,
-        by_lot = TRUE
-    )
-}
-
-## if-loop: 如果有分批lob，則把各批合併
-
-if (
-    # 如果有分批lob
-    is.null(ep17lob_analysis[["lot lob"]]) == FALSE
-) {
-    # 把各批合併
-    ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lot lob"]][[1]]
-    for (
-        x in seq(
-            2, length(ep17lob_analysis[["lot lob"]])
-        )
-    ) {
-        ep17lob_analysis[["lob"]] <- rbind(
-            ep17lob_analysis[["lob"]],
-            ep17lob_analysis[["lot lob"]][[x]]
+        result <- get_lob_para(
+            x$y,
+            sample_lot
         )
     }
+)
 
-    # 加上final lob
-    ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lob"]] %>%
-        mutate(
-            final_lob = max(lob)
-        )
+ep17lob_analysis[["lob para lot"]] <- ep17lob_analysis[["lob para lot split"]][[1]]
+
+for (
+    x in 2:length(ep17lob_analysis[["lob para lot split"]])
+) {
+    ep17lob_analysis[["lob para lot"]] <- rbind(
+        ep17lob_analysis[["lob para lot"]],
+        ep17lob_analysis[["lob para lot split"]][[x]]
+    )
 }
+
+### nonparametric lot
+ep17lob_analysis[["lob nonpara lot split"]] <- lapply(
+    ep17lob_tidy[["split"]],
+    function(x) {
+        result <- get_lob_nonpara(x$y)
+    }
+)
+
+ep17lob_analysis[["lob nonpara lot"]] <- ep17lob_analysis[["lob nonpara lot split"]][[1]]
+
+for (
+    x in 2:length(ep17lob_analysis[["lob nonpara lot split"]])
+) {
+    ep17lob_analysis[["lob nonpara lot"]] <- rbind(
+        ep17lob_analysis[["lob nonpara lot"]],
+        ep17lob_analysis[["lob nonpara lot split"]][[x]]
+    )
+}
+
+
+
+
+# ## if-loop: 區分情況計算lob
+
+# if (
+#     # 條件1:資料為常態
+#     ep17lob_analysis[["spw.p"]] >= 0.05 &
+#         ## 條件2: reagent_lot ≥4
+#         ep17lob_analysis[["reagent_lot number"]] >= 4
+# ) {
+#     # 則不分批計算常態lob
+#     ep17lob_analysis[["lob"]] <- get_lob_para(
+#         ep17lob_tidy[["combine"]]$y,
+#         ep17lob_analysis[["sample_lot number"]]
+#     )
+
+#     # 紀錄狀況判斷結果
+#     ep17lob_analysis[["crit"]] <- data.frame(
+#         normality = TRUE,
+#         by_lot = FALSE
+#     )
+# } else if (
+#     # 條件1:資料為非常態
+#     ep17lob_analysis[["spw.p"]] < 0.05 &
+#         ## 條件2: reagent_lot ≥4
+#         ep17lob_analysis[["reagent_lot number"]] >= 4
+# ) {
+#     # 則不分批計算非常態lob
+#     ep17lob_analysis[["lob"]] <- get_lob_nonpara(
+#         ep17lob_tidy[["combine"]]$y
+#     )
+
+#     # 紀錄狀況判斷結果
+#     ep17lob_analysis[["crit"]] <- data.frame(
+#         normality = FALSE,
+#         by_lot = FALSE
+#     )
+# } else if (
+#     # 條件1:資料為常態
+#     ep17lob_analysis[["spw.p"]] >= 0.05 &
+#         ## 條件2: reagent_lot ≤3
+#         ep17lob_analysis[["reagent_lot number"]] <= 3
+# ) {
+#     # 則分批計算常態lob
+#     ep17lob_analysis[["lot lob"]] <- lapply(
+#         ep17lob_tidy[["split"]],
+#         function(x) {
+#             sample_lot <- x$sample_lot %>%
+#                 factor() %>%
+#                 levels() %>%
+#                 length()
+
+#             result <- get_lob_para(
+#                 x$y,
+#                 sample_lot
+#             )
+#         }
+#     )
+
+#     # 紀錄狀況判斷結果
+#     ep17lob_analysis[["crit"]] <- data.frame(
+#         normality = TRUE,
+#         by_lot = TRUE
+#     )
+# } else if (
+#     # 條件1:資料為非常態
+#     ep17lob_analysis[["spw.p"]] < 0.05 &
+#         ## 條件2: reagent_lot ≤3
+#         ep17lob_analysis[["reagent_lot number"]] <= 3
+# ) {
+#     # 則分批計算非常態lob
+#     ep17lob_analysis[["lot lob"]] <- lapply(
+#         ep17lob_tidy[["split"]],
+#         function(x) {
+#             result <- get_lob_nonpara(x$y)
+#         }
+#     )
+
+#     # 紀錄狀況判斷結果
+#     ep17lob_analysis[["crit"]] <- data.frame(
+#         normality = FALSE,
+#         by_lot = TRUE
+#     )
+# }
+
+# ## if-loop: 如果有分批lob，則把各批合併
+
+# if (
+#     # 如果有分批lob
+#     is.null(ep17lob_analysis[["lot lob"]]) == FALSE
+# ) {
+#     # 把各批合併
+#     ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lot lob"]][[1]]
+#     for (
+#         x in seq(
+#             2, length(ep17lob_analysis[["lot lob"]])
+#         )
+#     ) {
+#         ep17lob_analysis[["lob"]] <- rbind(
+#             ep17lob_analysis[["lob"]],
+#             ep17lob_analysis[["lot lob"]][[x]]
+#         )
+#     }
+
+#     # 加上final lob
+#     ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lob"]] %>%
+#         mutate(
+#             final_lob = max(lob)
+#         )
+# }
 
 # * report_fig
 
 ## raw data: 各測量值分佈
-
 ep17lob_report_fig[["raw"]] <- ggplot(
+    ep17lob_tidy[["combine"]],
+    aes(
+        x = factor(reagent_lot),
+        y = y,
+        color = factor(reagent_lot),
+        shape = factor(sample_lot)
+    )
+) +
+    geom_jitter() +
+    xlab("Reagnet Lot") +
+    ylab(
+        paste(
+            "Measured Value, ",
+            ep17lob_import[["setting"]]$unit_of_device,
+            sep = ""
+        )
+    ) +
+    labs(
+        shape = "Sample Lot",
+        color = "Reagent Lot"
+    )
+
+ep17lob_report_fig[["raw hist"]] <- ggplot(
     ep17lob_tidy[["combine"]],
     aes(y)
 ) +
@@ -273,7 +357,7 @@ ep17lob_report_tab[["desc non-parametric"]] <-
 
 ## lob分析結果
 
-ep17lob_report_tab[["lob"]] <- ep17lob_analysis[["lob"]] %>%
+ep17lob_report_tab[["lob para 1"]] <- ep17lob_analysis[["lob para 1"]] %>%
     # 取到小數第3位
     round(digits = 3) %>%
     flextable() %>%
@@ -281,10 +365,7 @@ ep17lob_report_tab[["lob"]] <- ep17lob_analysis[["lob"]] %>%
     set_header_labels(
         mean = "Mean",
         sd = "SD",
-        lwr = "Rank Position: Lwr.",
-        upr = "Rank Position: Upr.",
-        lob = "LoB",
-        final_lob = "Final LoB"
+        lob = "LoB"
     ) %>%
     align(
         part = "header",
@@ -293,43 +374,121 @@ ep17lob_report_tab[["lob"]] <- ep17lob_analysis[["lob"]] %>%
     align(
         part = "body",
         align = "center"
+    ) %>%
+    compose(
+        part = "header",
+        j = "cp",
+        value = as_paragraph("C", as_sub("P")),
+    ) %>%
+    # 加上數值單位說明
+    add_footer_lines(
+        values = paste(
+            "unit of Mean, SD, and LoB:",
+            ep17lob_import[["setting"]]$unit_of_device[1],
+            sep = " "
+        )
+    ) %>%
+    align(
+        part = "footer",
+        align = "right"
     )
 
-## if-loop: 若有cp則特別格式化再標注單位，若無則僅標注單位
+ep17lob_report_tab[["lob para lot"]] <- ep17lob_analysis[["lob para lot"]] %>%
+    # 取到小數第3位
+    round(digits = 3) %>%
+    flextable() %>%
+    merge_v() %>%
+    set_header_labels(
+        mean = "Mean",
+        sd = "SD",
+        lob = "LoB"
+    ) %>%
+    align(
+        part = "header",
+        align = "center"
+    ) %>%
+    align(
+        part = "body",
+        align = "center"
+    ) %>%
+    compose(
+        part = "header",
+        j = "cp",
+        value = as_paragraph("C", as_sub("P")),
+    ) %>%
+    # 加上數值單位說明
+    add_footer_lines(
+        values = paste(
+            "unit of Mean, SD, and LoB:",
+            ep17lob_import[["setting"]]$unit_of_device[1],
+            sep = " "
+        )
+    ) %>%
+    align(
+        part = "footer",
+        align = "right"
+    )
 
-if (
-    is.null(ep17lob_analysis[["lob"]]$cp) == FALSE
-) {
-    ep17lob_report_tab[["lob"]] <- ep17lob_report_tab[["lob"]] %>%
-        compose(
-            part = "header",
-            j = "cp",
-            value = as_paragraph("C", as_sub("P")),
-        ) %>%
-        # 加上數值單位說明
-        add_footer_lines(
-            values = paste(
-                "unit of Mean, SD, and LoB:",
-                ep17lob_import[["setting"]]$unit_of_device[1],
-                sep = " "
-            )
-        ) %>%
-        align(
-            part = "footer",
-            align = "right"
+ep17lob_report_tab[["lob nonpara 1"]] <- ep17lob_analysis[["lob nonpara 1"]] %>%
+    # 取到小數第3位
+    round(digits = 3) %>%
+    flextable() %>%
+    merge_v() %>%
+    set_header_labels(
+        mean = "Mean",
+        sd = "SD",
+        lwr = "Lwr.",
+        upr = "Upr.",
+        lob = "LoB"
+    ) %>%
+    align(
+        part = "header",
+        align = "center"
+    ) %>%
+    align(
+        part = "body",
+        align = "center"
+    ) %>%
+    add_footer_lines(
+        values = paste(
+            "unit of values:",
+            ep17lob_import[["setting"]]$unit_of_device[1],
+            sep = " "
         )
-} else {
-    ep17lob_report_tab[["lob"]] <- ep17lob_report_tab[["lob"]] %>%
-        # 加上數值單位說明
-        add_footer_lines(
-            values = paste(
-                "unit of values:",
-                ep17lob_import[["setting"]]$unit_of_device[1],
-                sep = " "
-            )
-        ) %>%
-        align(
-            part = "footer",
-            align = "right"
+    ) %>%
+    align(
+        part = "footer",
+        align = "right"
+    )
+
+ep17lob_report_tab[["lob nonpara lot"]] <- ep17lob_analysis[["lob nonpara lot"]] %>%
+    # 取到小數第3位
+    round(digits = 3) %>%
+    flextable() %>%
+    merge_v() %>%
+    set_header_labels(
+        mean = "Mean",
+        sd = "SD",
+        lwr = "Lwr.",
+        upr = "Upr.",
+        lob = "LoB"
+    ) %>%
+    align(
+        part = "header",
+        align = "center"
+    ) %>%
+    align(
+        part = "body",
+        align = "center"
+    ) %>%
+    add_footer_lines(
+        values = paste(
+            "unit of values:",
+            ep17lob_import[["setting"]]$unit_of_device[1],
+            sep = " "
         )
-}
+    ) %>%
+    align(
+        part = "footer",
+        align = "right"
+    )

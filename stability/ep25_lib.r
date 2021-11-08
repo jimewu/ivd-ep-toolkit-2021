@@ -99,6 +99,24 @@ ep25_analysis[["predict"]] <-
 names(ep25_analysis[["predict"]]) <-
     names(ep25_analysis[["regression"]])
 
+ep25_analysis[["predict combine"]] <- ep25_analysis[["predict"]][[1]]
+
+for (
+    x in 2:length(ep25_analysis[["predict"]])
+) {
+    ep25_analysis[["predict combine"]] <- rbind(
+        ep25_analysis[["predict combine"]],
+        ep25_analysis[["predict"]][[x]]
+    )
+}
+
+ep25_analysis[["predict regressed"]] <- ep25_analysis[["predict combine"]] %>%
+    filter(
+        sample %in% names(ep25_analysis[["summary p"]])[
+            ep25_analysis[["summary p"]] < 0.05
+        ]
+    )
+
 ep25_analysis[["maxday"]] <- sapply(
     names(ep25_analysis[["predict"]]),
     function(x) {
@@ -176,7 +194,7 @@ ep25_report_fig[["raw"]] <- ggplot(
 
 ## 結果圖帶regression curve
 
-ep25_report_fig[["regression"]] <- ggplot(
+ep25_report_fig[["regression upr"]] <- ggplot(
     ep25_analysis[["sample regressed"]],
     aes(
         x = day,
@@ -187,8 +205,16 @@ ep25_report_fig[["regression"]] <- ggplot(
     geom_smooth(
         method = "lm",
         formula = y ~ x,
-        se = TRUE,
-        level = 0.95
+        se = FALSE
+    ) +
+    geom_line(
+        data = ep25_analysis[["predict regressed"]],
+        aes(
+            x = day,
+            y = upr
+        ),
+        color = "red",
+        linetype = 2
     ) +
     geom_line(
         aes(
@@ -209,6 +235,49 @@ ep25_report_fig[["regression"]] <- ggplot(
         ~sample,
         scales = "free_y"
     )
+
+ep25_report_fig[["regression lwr"]] <- ggplot(
+    ep25_analysis[["sample regressed"]],
+    aes(
+        x = day,
+        y = y
+    )
+) +
+    geom_point() +
+    geom_smooth(
+        method = "lm",
+        formula = y ~ x,
+        se = FALSE
+    ) +
+    geom_line(
+        data = ep25_analysis[["predict regressed"]],
+        aes(
+            x = day,
+            y = lwr
+        ),
+        color = "red",
+        linetype = 2
+    ) +
+    geom_line(
+        aes(
+            y = limit_lwr
+        ),
+        linetype = 2,
+        color = "#00AFBB"
+    ) +
+    geom_line(
+        aes(
+            y = limit_upr
+        ),
+        linetype = 2,
+        color = "#00AFBB"
+    ) +
+    ylab(ep25_import[["setting"]]$unit_of_device) +
+    facet_wrap(
+        ~sample,
+        scales = "free_y"
+    )
+
 
 # * report_tab
 
