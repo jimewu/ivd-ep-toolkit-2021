@@ -1,209 +1,110 @@
+source("main_ep17lod.r")
+
+
 # * analysis
-
-## Descriptive Statistics: 計算各樣品的Mean, SD, Ratio > LOB, Median
-
-ep17lod_analysis[["desc"]] <- ep17lod_tidy[["combine"]] %>%
-    group_by(
-        sample,
-        reagent_lot
-    ) %>%
-    summarize(
-        n = length(y),
-        # parametric statistics
-        mean = mean(y),
-        sd = sd(y),
-        # non-parametric statistics
-        positivity = length(y[y > ep17lod_import[["setting"]]$lob]) / n,
-        median = median(y)
-    ) %>%
-    ungroup() %>%
-    arrange(reagent_lot)
-
-## 以Shapiro-Wilk Test檢定SD是否為常態分佈
-
-ep17lod_analysis[["spw.p"]] <- shapiro.test(
-    ep17lod_tidy[["combine"]]$y
-)$p.value
-
-## 計算cp
-
-ep17lod_analysis[["cp"]] <- data.frame(
-    L = sum(ep17lod_analysis[["desc"]]$n),
-    J = length(
-        levels(
-            factor(ep17lod_analysis[["desc"]]$sample)
-        )
-    )
-) %>%
-    mutate(
-        upr = qnorm(0.95),
-        lwr = 1 - (4 * (L - J))^(-1),
-        cp = upr / lwr
-    )
-
-ep17lod_analysis[["cp"]] <- ep17lod_analysis[["cp"]]$cp
-
-## 取出reagent lot數量
-
-ep17lod_analysis[["reagent_lot number"]] <- ep17lod_analysis[["desc"]]$reagent_lot %>%
-    factor() %>%
-    levels() %>%
-    length()
-
-## 定義計算SDL公式
-
-get_sdl <- function(data) {
-    result <- data %>%
-        group_by(
-            sample
-        ) %>%
-        summarize(
-            n = length(y),
-            sd = sd(y)
-        ) %>%
-        mutate(
-            upr = (n - 1) * sd^2,
-            lwr = n - 1
-        ) %>%
-        summarize(
-            sdl = sqrt(
-                sum(upr) / sum(lwr)
-            )
-        )
-
-    return(result)
-}
-
-ep17lod_analysis[["lod para 1"]] <- data.frame(
-    cp = ep17lod_analysis[["cp"]],
-    sdl = get_sdl(ep17lod_tidy[["combine"]])$sdl
-) %>%
-    mutate(
-        lod = ep17lod_import[["setting"]]$lob +
-            sdl * cp
-    )
-
-ep17lod_analysis[["lod para lot split"]] <- lapply(
+ep17lod_analysis[["regression"]] <- lapply(
     ep17lod_tidy[["split"]],
     function(x) {
-        result <- data.frame(
-            cp = ep17lod_analysis[["cp"]],
-            sdl_lot = get_sdl(x)$sdl
+        rgs1 <- lm(
+            y ~ poly(log_conc, 1),
+            x
+        )
+
+        rgs2 <- lm(
+            y ~ poly(log_conc, 2),
+            x
+        )
+
+        rgs3 <- lm(
+            y ~ poly(log_conc, 3),
+            x
+        )
+
+        sum1 <- summary(rgs1)
+        sum2 <- summary(rgs2)
+        sum3 <- summary(rgs3)
+
+        coef1 <- sum1$coefficients
+        coef2 <- sum2$coefficients
+        coef3 <- sum3$coefficients
+
+        if (
+            coef3[nrow(coef3), ncol(coef3)] < 0.05
+        ) {
+            rgs_best <- rgs3
+            sum_best <- sum3
+            formula_best <- as.formula(
+                y ~ poly(x, 3)
+            )
+        } else if (
+            coef2[nrow(coef2), ncol(coef2)] < 0.05
+        ) {
+            rgs_best <- rgs2
+            sum_best <- sum2
+            formula_best <- as.formula(
+                y ~ poly(x, 2)
+            )
+        } else {
+            rgs_best <- rgs1
+            sum_best <- sum1
+            formula_best <- as.formula(
+                y ~ poly(x, 1)
+            )
+        }
+
+        predict_y <- predict(
+            rgs_best,
+            newdata = data.frame(
+                log_conc = seq(
+                    min(x$log_conc),
+                    max(x$log_conc),
+                    by = 0.01
+                )
+            )
+        )
+
+        predict <- data.frame(
+            log_conc = seq(
+                min(x$log_conc),
+                max(x$log_conc),
+                by = 0.01
+            ),
+            y = predict_y
         ) %>%
             mutate(
-                lod_lot = ep17lod_import[["setting"]]$lob +
-                    sdl_lot * cp
-            ) %>%
-            cbind(
-                reagent_lot = x$reagent_lot[1],
-                .
+                concentration = 10^log_conc,
+                reagent_lot = x$reagent_lot[1]
             )
+
+        lod <- predict %>%
+            filter(
+                y >= 1 - ep17lod_import[["setting"]]$beta
+            )
+
+        result <- list(
+            rgs = rgs_best,
+            sum = sum_best,
+            formula = formula_best,
+            predict = predict,
+            lod = lod[1, ]
+        )
 
         return(result)
     }
 )
 
-ep17lod_analysis[["lod para lot"]] <- ep17lod_analysis[["lod para lot split"]][[1]]
+ep17lod_analysis[["predict combine"]] <-
+    ep17lod_analysis[["regression"]][[1]][["predict"]]
 
 for (
-    x in 2:length(ep17lod_analysis[["lod para lot split"]])
+    x in 2:length(ep17lod_analysis[["regression"]])
 ) {
-    ep17lod_analysis[["lod para lot"]] <- rbind(
-        ep17lod_analysis[["lod para lot"]],
-        ep17lod_analysis[["lod para lot split"]][[x]]
+    ep17lod_analysis[["predict combine"]] <- rbind(
+        ep17lod_analysis[["predict combine"]],
+        ep17lod_analysis[["regression"]][[x]][["predict"]]
     )
 }
 
-
-
-# ## if-loop
-
-# if (
-#     ep17lod_analysis[["reagent_lot number"]] >= 4
-# ) {
-#     ### reagent_lot≥4: 合併計算
-
-#     ep17lod_analysis[["lod"]] <- data.frame(
-#         cp = ep17lod_analysis[["cp"]],
-#         sdl = get_sdl(ep17lod_tidy[["combine"]])$sdl
-#     ) %>%
-#         mutate(
-#             lod = ep17lod_import[["setting"]]$lob +
-#                 sdl * cp
-#         )
-# } else if (
-#     ep17lod_analysis[["reagent_lot number"]] <= 3
-# ) {
-#     ### reagent_lot≤3: 分批計算
-
-#     ep17lod_analysis[["lot lod"]] <- lapply(
-#         ep17lod_tidy[["split"]],
-#         function(x) {
-#             result <- data.frame(
-#                 cp = ep17lod_analysis[["cp"]],
-#                 sdl_lot = get_sdl(x)$sdl
-#             ) %>%
-#                 mutate(
-#                     lod_lot = ep17lod_import[["setting"]]$lob +
-#                         sdl_lot * cp
-#                 ) %>%
-#                 cbind(
-#                     reagent_lot = x$reagent_lot[1],
-#                     .
-#                 )
-
-#             return(result)
-#         }
-#     )
-# }
-
-# ## if-loop: 若有ep17lod_analysis[["lot lod"]], 則合併並計算final LoD
-
-# if (
-#     is.null(ep17lod_analysis[["lot lod"]]) == FALSE
-# ) {
-#     ep17lod_analysis[["lod"]] <- ep17lod_analysis[["lot lod"]][[1]]
-
-#     for (
-#         x in seq(2, length(ep17lod_analysis[["lot lod"]]))
-#     ) {
-#         ep17lod_analysis[["lod"]] <- rbind(
-#             ep17lod_analysis[["lod"]],
-#             ep17lod_analysis[["lot lod"]][[x]]
-#         )
-#     }
-
-#     ep17lod_analysis[["lod"]] <- ep17lod_analysis[["lod"]] %>%
-#         cbind(
-#             .,
-#             final_lod = max(.$lod_lot)
-#         )
-# }
-
-## 計算non-parametric option
-
-ep17lod_analysis[["lod nonpara lot"]] <- ep17lod_analysis[["desc"]] %>%
-    select(
-        sample,
-        reagent_lot,
-        n,
-        positivity,
-        median
-    ) %>%
-    group_by(
-        sample,
-        reagent_lot
-    ) %>%
-    summarize(
-        lod = ifelse(
-            all(
-                positivity > (1 - ep17lod_import[["setting"]]$beta)
-            ),
-            mean(median),
-            0
-        )
-    ) %>%
-    arrange(sample)
 
 # * report_fig
 
@@ -212,59 +113,41 @@ ep17lod_analysis[["lod nonpara lot"]] <- ep17lod_analysis[["desc"]] %>%
 ep17lod_report_fig[["raw"]] <- ggplot(
     ep17lod_tidy[["combine"]],
     aes(
-        x = sample,
+        x = concentration,
         y = y,
-        color = sample,
-        shape = factor(reagent_lot)
-    )
-) +
-    geom_jitter() +
-    xlab("Sample") +
-    ylab("Measurement Value")
-
-
-## 濃度 VS SD (color = reagent lot)
-
-ep17lod_report_fig[["sd"]] <- ggplot(
-    ep17lod_analysis[["desc"]],
-    aes(
-        x = mean,
-        y = sd,
         color = factor(reagent_lot)
     )
 ) +
     geom_point() +
-    xlab("Measurement Values") +
-    ylab("SD")
-
-## qqplot of SD
-
-ep17lod_report_fig[["qq"]] <- ggplot(
-    ep17lod_analysis[["desc"]],
-    aes(
-        sample = sd
-    )
-) +
-    stat_qq() +
-    stat_qq_line(
-        linetype = 2,
-        color = "red",
-        alpha = 0.5
+    geom_line(
+        data = ep17lod_analysis[["predict combine"]],
+        aes(group = factor(reagent_lot))
     ) +
-    xlab("Normal Distribution") +
-    ylab("SD")
+    scale_x_continuous(trans = "log10") +
+    xlab("log10 [Concentration]") +
+    ylab("Probit") +
+    labs(color = "Reagent Lot")
+
 
 # * report_tab
 
 ## 各樣品 x 各濃度的parametric descriptive statistics
 
-ep17lod_report_tab[["desc parametric"]] <- ep17lod_analysis[["desc"]] %>%
-    transmute(
-        sample = sample,
-        reagent_lot = reagent_lot,
-        n = n,
-        mean = round(mean, digits = 3),
-        sd = round(sd, digits = 3)
+ep17lod_report_tab[["lod"]] <- ep17lod_analysis[["regression"]][[1]][["lod"]]
+
+for (
+    x in 2:length(ep17lod_analysis[["regression"]])
+) {
+    ep17lod_report_tab[["lod"]] <- rbind(
+        ep17lod_report_tab[["lod"]],
+        ep17lod_analysis[["regression"]][[x]][["lod"]]
+    )
+}
+
+ep17lod_report_tab[["lod"]] <- ep17lod_report_tab[["lod"]] %>%
+    select(
+        reagent_lot,
+        concentration
     ) %>%
     flextable() %>%
     align(
@@ -276,215 +159,6 @@ ep17lod_report_tab[["desc parametric"]] <- ep17lod_analysis[["desc"]] %>%
         part = "body"
     ) %>%
     set_header_labels(
-        sample = "Sample",
         reagent_lot = "Reagent Lot",
-        n = "N",
-        mean = "Mean",
-        sd = "SD"
-    ) %>%
-    add_footer_lines(
-        values = paste(
-            "unit of mean and SD:",
-            ep17lod_import[["setting"]]$unit_of_device,
-            "\nShapiro-Wilk Test of SD: p =",
-            round(
-                ep17lod_analysis[["spw.p"]],
-                digits = 3
-            )
-        )
-    ) %>%
-    align(
-        align = "right",
-        part = "footer"
+        concentration = "Concentration"
     )
-
-## 各樣品 x 各濃度的non-parametric descriptive statistics
-
-ep17lod_report_tab[["desc non-parametric"]] <- ep17lod_analysis[["desc"]] %>%
-    arrange(sample) %>%
-    transmute(
-        sample = sample,
-        reagent_lot = reagent_lot,
-        n = n,
-        positivity = round(positivity, digits = 3),
-        median = round(median, digits = 3)
-    ) %>%
-    flextable() %>%
-    align(
-        align = "center",
-        part = "header"
-    ) %>%
-    align(
-        align = "center",
-        part = "body"
-    ) %>%
-    set_header_labels(
-        sample = "Sample",
-        reagent_lot = "Reagent Lot",
-        n = "N",
-        positivity = "Ratio > LoB",
-        median = "Median"
-    ) %>%
-    add_footer_lines(
-        values = paste(
-            "unit of median:",
-            ep17lod_import[["setting"]]$unit_of_device,
-            "\nShapiro-Wilk Test of SD: p =",
-            round(
-                ep17lod_analysis[["spw.p"]],
-                digits = 3
-            )
-        )
-    ) %>%
-    align(
-        align = "right",
-        part = "footer"
-    )
-
-
-## LoD分析結果
-
-### Parametric
-
-ep17lod_report_tab[["lod para 1"]] <-
-    ep17lod_analysis[["lod para 1"]] %>%
-    round(digits = 3) %>%
-    flextable() %>%
-    align(
-        align = "center",
-        part = "header"
-    ) %>%
-    align(
-        align = "center",
-        part = "body"
-    ) %>%
-    merge_v(
-        part = "body"
-    ) %>%
-    set_header_labels(
-        lod = "LoD"
-    ) %>%
-    compose(
-        part = "header",
-        j = "sdl",
-        value = as_paragraph(
-            "SD",
-            as_sub("L")
-        )
-    ) %>%
-    compose(
-        part = "header",
-        j = "cp",
-        value = as_paragraph(
-            "C",
-            as_sub("P")
-        )
-    ) %>%
-    add_footer_lines(
-        values = paste(
-            "unit of SD and LoD:",
-            ep17lod_import[["setting"]]$unit_of_device
-        )
-    ) %>%
-    align(
-        align = "right",
-        part = "footer"
-    )
-
-ep17lod_report_tab[["lod para lot"]] <-
-    ep17lod_analysis[["lod para lot"]] %>%
-    round(digits = 3) %>%
-    flextable() %>%
-    align(
-        align = "center",
-        part = "header"
-    ) %>%
-    align(
-        align = "center",
-        part = "body"
-    ) %>%
-    merge_v(
-        part = "body"
-    ) %>%
-    set_header_labels(
-        reagent_lot = "Reagnet Lot",
-        lod_lot = "Lot LoD"
-    ) %>%
-    compose(
-        part = "header",
-        j = "sdl_lot",
-        value = as_paragraph(
-            "SD",
-            as_sub("L")
-        )
-    ) %>%
-    compose(
-        part = "header",
-        j = "cp",
-        value = as_paragraph(
-            "C",
-            as_sub("P")
-        )
-    ) %>%
-    add_footer_lines(
-        values = paste(
-            "unit of SD and LoD:",
-            ep17lod_import[["setting"]]$unit_of_device
-        )
-    ) %>%
-    align(
-        align = "right",
-        part = "footer"
-    )
-
-### Non-parametric
-
-ep17lod_report_tab[["lod nonpara lot"]] <-
-    ep17lod_analysis[["lod nonpara lot"]] %>%
-    mutate(
-        lod = round(lod, digits = 3)
-    ) %>%
-    flextable() %>%
-    align(
-        align = "center",
-        part = "header"
-    ) %>%
-    align(
-        align = "center",
-        part = "body"
-    ) %>%
-    merge_v(
-        part = "body"
-    ) %>%
-    set_header_labels(
-        sample = "Sample",
-        lod = "LoD"
-    ) %>%
-    add_footer_lines(
-        values = paste(
-            "unit of LoD:",
-            ep17lod_import[["setting"]]$unit_of_device
-        )
-    ) %>%
-    align(
-        align = "right",
-        part = "footer"
-    )
-
-# * report_crit: 結論數字
-
-## Shapiro-Wilk test p-value
-
-ep17lod_report_crit[["spw p-value"]] <- ep17lod_analysis[["spw.p"]]
-
-## Final LoD
-
-### Parametric
-
-# ep17lod_report_crit[["parametric final lod"]] <-
-#     ep17lod_analysis[["lod"]]$final_lod[1]
-
-### Non-parametric
-
-# ep17lod_report_crit[["non-parametric final lod"]] <-
-#     ep17lod_analysis[["non-parametric lod"]]$lod[1]

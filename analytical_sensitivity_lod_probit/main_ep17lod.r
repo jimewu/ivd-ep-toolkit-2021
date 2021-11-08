@@ -59,7 +59,13 @@ ep17lod_import[["data"]] <- read_ods(
 
 ## combine
 
-ep17lod_tidy[["combine"]] <- ep17lod_import[["data"]]
+ep17lod_tidy[["combine"]] <- ep17lod_import[["data"]] %>%
+    filter(
+        concentration != 0
+    ) %>%
+    mutate(
+        log_conc = log10(concentration)
+    )
 
 ## split by reagent_lot
 
@@ -67,8 +73,8 @@ ep17lod_tidy[["split"]] <- ep17lod_tidy[["combine"]] %>%
     # 加入易讀的分組依據
     mutate(
         split = paste(
-            "Concentration",
-            concentration
+            "Reagent Lot",
+            reagent_lot
         )
     ) %>%
     split(.$split) %>%
@@ -80,4 +86,4 @@ ep17lod_tidy[["split"]] <- ep17lod_tidy[["combine"]] %>%
         }
     )
 
-source("lib_ep17lod.r")
+# source("lib_ep17lod.r")
