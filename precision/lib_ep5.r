@@ -118,7 +118,7 @@ ep5_report_tab[["raw"]] <- ep5_tidy[["combine"]] %>%
         )
     ) %>%
     datatable(
-        options = list(scrollY = "375px"),
+        options = list(scrollY = "450px"),
         colnames = c(
             "Sample",
             ep5_import[["setting"]]$name_of_factors,
