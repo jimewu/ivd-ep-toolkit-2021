@@ -1,5 +1,5 @@
 ---
-title: "EP17-A2 LoD Classical Data Analysis"
+title: "EP17-A2 LoD Probit Data Analysis"
 date: "`r Sys.Date()`"
 output: 
   flexdashboard::flex_dashboard:
@@ -61,44 +61,17 @@ Raw Data
 ep17lod_report_tab[["raw"]]
 ```
 
-### Scatter Plot
+Probit Approach
+================
+
+### Log Scale Scatter Plot with Regression
 
 ```{r}
 ep17lod_report_fig[["raw"]]
 ```
 
-Parametric
-================
-
-### 敘述統計
-
-```{r}
-ep17lod_report_tab[["desc parametric"]]
-```
-
 ### 區分Reagent Lot分析
 
 ```{r}
-ep17lod_report_tab[["lod para lot"]]
-```
-
-### 不區分Reagent Lot分析
-
-```{r}
-ep17lod_report_tab[["lod para 1"]]
-```
-
-Non-parametric
-================
-
-### 敘述統計
-
-```{r}
-ep17lod_report_tab[["desc non-parametric"]]
-```
-
-### 區分Reagent Lot分析
-
-```{r}
-ep17lod_report_tab[["lod nonpara lot"]]
+ep17lod_report_tab[["lod"]]
 ```

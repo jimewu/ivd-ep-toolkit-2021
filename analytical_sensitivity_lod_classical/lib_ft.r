@@ -60,7 +60,7 @@ theme_ms <- function(x) {
 set_flextable_defaults(
   font.family = "Times New Roman",
   eastasia.family = "DFKai-SB",
-  font.size = 18,
+  font.size = 14,
   theme_fun = "theme_ms"
 )
 

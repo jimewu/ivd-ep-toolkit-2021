@@ -1,5 +1,5 @@
 ---
-title: "EP17-A2 LoD Classical Data Analysis"
+title: "EP17-A2 LoQ Data Analysis"
 date: "`r Sys.Date()`"
 output: 
   flexdashboard::flex_dashboard:
@@ -38,7 +38,7 @@ lapply(
 setwd(
     paste(
         git = here(),
-        project = "analytical_sensitivity_lod_classical",
+        project = "analytical_sensitivity_loq",
         sep = "/"
     )
 )
@@ -47,7 +47,7 @@ source("lib_ft.r")
 ```
 
 ```{r include = FALSE}
-source("main_ep17lod.r")
+source("main_ep17loq.r")
 ```
 
 
@@ -58,47 +58,33 @@ Raw Data
 ### 原始資料表
 
 ```{r}
-ep17lod_report_tab[["raw"]]
+ep17loq_report_tab[["raw"]]
 ```
 
 ### Scatter Plot
 
 ```{r}
-ep17lod_report_fig[["raw"]]
+ep17loq_report_fig[["raw"]]
 ```
 
-Parametric
+
+Total Error
 ================
 
-### 敘述統計
+### Summary
 
 ```{r}
-ep17lod_report_tab[["desc parametric"]]
+ep17loq_report_tab[["te"]]
 ```
 
-### 區分Reagent Lot分析
+### Scatter Plot with %TE by Westgard Model
 
 ```{r}
-ep17lod_report_tab[["lod para lot"]]
+ep17loq_report_fig[["te wgs"]]
 ```
 
-### 不區分Reagent Lot分析
+### Scatter Plot with %TE by RMS Model
 
 ```{r}
-ep17lod_report_tab[["lod para 1"]]
-```
-
-Non-parametric
-================
-
-### 敘述統計
-
-```{r}
-ep17lod_report_tab[["desc non-parametric"]]
-```
-
-### 區分Reagent Lot分析
-
-```{r}
-ep17lod_report_tab[["lod nonpara lot"]]
+ep17loq_report_fig[["te rms"]]
 ```

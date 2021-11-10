@@ -1,6 +1,3 @@
-source("main_ep17lod.r")
-
-
 # * analysis
 ep17lod_analysis[["regression"]] <- lapply(
     ep17lod_tidy[["split"]],
@@ -130,6 +127,28 @@ ep17lod_report_fig[["raw"]] <- ggplot(
 
 
 # * report_tab
+## Raw Data
+ep17lod_report_tab[["raw"]] <- datatable(
+    round(
+        ep17lod_tidy[["combine"]][
+            , c(
+                "reagent_lot",
+                "concentration",
+                "log_conc",
+                "y"
+            )
+        ],
+        digits = 3
+    ),
+    options = list(scrollY = "375px"),
+    colnames = c(
+        "Reagent Lot",
+        "Concentration",
+        "Log10 [Concentration]",
+        "Measured Value"
+    )
+)
+
 
 ## 各樣品 x 各濃度的parametric descriptive statistics
 

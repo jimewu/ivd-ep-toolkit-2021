@@ -1,6 +1,3 @@
-source("main_ep17loq.r")
-
-
 # * analysis
 ep17loq_analysis[["te"]] <- ep17loq_tidy[["combine"]] %>%
     group_by(
@@ -60,7 +57,7 @@ ep17loq_report_fig[["raw"]] <- ggplot(
     )
 
 ep17loq_report_fig[["te wgs"]] <- ggplot(
-    ep17loq_analysis[["loq"]],
+    ep17loq_analysis[["te"]],
     aes(
         x = ref,
         y = pct_te_wgs
@@ -92,7 +89,7 @@ ep17loq_report_fig[["te wgs"]] <- ggplot(
     )
 
 ep17loq_report_fig[["te rms"]] <- ggplot(
-    ep17loq_analysis[["loq"]],
+    ep17loq_analysis[["te"]],
     aes(
         x = ref,
         y = pct_te_rms
@@ -125,6 +122,18 @@ ep17loq_report_fig[["te rms"]] <- ggplot(
 
 
 # * report_tab
+## Raw Data
+ep17loq_report_tab[["raw"]] <- ep17loq_tidy[["combine"]] %>%
+    datatable(
+        options = list(scrollY = "450px"),
+        colnames = c(
+            "Sample",
+            "Reagent Lot",
+            "測量值",
+            "真值(以參考方法得到)"
+        )
+    )
+
 
 ## 各樣品 x 各濃度的parametric descriptive statistics
 
