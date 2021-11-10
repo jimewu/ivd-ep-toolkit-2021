@@ -19,7 +19,6 @@ pkg_lst <- c(
     "knitr",
     "readODS",
     "dplyr",
-    "collapsibleTree",
     "flextable",
     "DT",
     "officedown",
