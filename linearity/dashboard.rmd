@@ -1,0 +1,142 @@
+---
+title: "EP06Ed2E Data Analysis"
+date: "`r Sys.Date()`"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    include = TRUE,
+    fig.align = "center"
+)
+```
+
+```{r pkg.load, include = FALSE}
+pkg_lst <- c(
+    "knitr",
+    "readODS",
+    "dplyr",
+    "collapsibleTree",
+    "flextable",
+    "DT",
+    "officedown",
+    "officer",
+    "ggplot2",
+    "plotly",
+    "here"
+)
+
+lapply(
+    pkg_lst,
+    library,
+    character.only = TRUE
+)
+
+setwd(
+    paste(
+        git = here(),
+        project = "linearity",
+        sep = "/"
+    )
+)
+
+source("lib_ft.r")
+```
+
+```{r include = FALSE}
+source("main_ep6.r")
+```
+
+Raw Data
+================
+
+### 原始資料表
+    
+```{r}
+ep6_report_tab[["raw"]]
+```
+    
+### Scatter Plot
+
+```{r}
+ep6_report_fig[["raw all"]]
+```
+
+### Scatter Plot: 單獨檢視
+
+```{r}
+ep6_report_fig[["raw facet"]]
+```
+
+檢查Imprecision
+================
+
+### SD
+
+```{r}
+ep6_report_fig[["sd"]]
+```
+
+### %CV
+
+```{r}
+ep6_report_fig[["cv"]]
+```
+
+Linear Regression: 無截距
+================
+
+### Linear Regression
+
+```{r}
+ep6_report_fig[["regression ideal"]]
+```
+
+### Deviation
+
+```{r}
+ep6_report_fig[["deviation ideal"]]
+```
+
+### %Deviation
+
+```{r}
+ep6_report_fig[["%deviation ideal"]]
+```
+
+### Summary
+
+```{r}
+ep6_report_tab[["desc ideal"]]
+```
+
+
+Linear Regression: 有截距
+================
+
+### Linear Regression
+
+```{r}
+ep6_report_fig[["regression nonideal"]]
+```
+
+### Deviation
+
+```{r}
+ep6_report_fig[["deviation nonideal"]]
+```
+
+### %Deviation
+
+```{r}
+ep6_report_fig[["%deviation nonideal"]]
+```
+
+### Summary
+
+```{r}
+ep6_report_tab[["desc nonideal"]]
+```

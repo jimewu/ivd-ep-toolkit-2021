@@ -58,7 +58,7 @@ ep6_analysis[["desc nonideal"]] <- cbind(
 ep6_report_fig[["raw all"]] <- ggplot(
     ep6_tidy[["combine"]],
     aes(
-        x = RC,
+        x = rc,
         y = y,
         color = factor(replicate)
     )
