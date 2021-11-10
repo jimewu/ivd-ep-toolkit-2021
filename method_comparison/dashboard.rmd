@@ -1,0 +1,126 @@
+---
+title: "EP09c Data Analysis"
+date: "`r Sys.Date()`"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    include = TRUE,
+    fig.align = "center"
+)
+```
+
+```{r pkg.load, include = FALSE}
+pkg_lst <- c(
+    "knitr",
+    "readODS",
+    "dplyr",
+    "collapsibleTree",
+    "flextable",
+    "DT",
+    "officedown",
+    "officer",
+    "ggplot2",
+    "plotly",
+    "here"
+)
+
+lapply(
+    pkg_lst,
+    library,
+    character.only = TRUE
+)
+
+setwd(
+    paste(
+        git = here(),
+        project = "method_comparison",
+        sep = "/"
+    )
+)
+
+source("lib_ft.r")
+```
+
+```{r include = FALSE}
+source("ep9_main.r")
+```
+
+Raw Data
+================
+
+### 原始資料表
+    
+```{r}
+ep9_report_tab[["raw"]]
+```
+    
+### Scatter Plot
+
+```{r}
+ep9_report_fig[["raw"]]
+```
+
+Difference Plot
+================
+
+### Difference Plot
+
+```{r}
+ep9_report_fig[["difference"]]
+```
+
+### %Difference Plot
+
+```{r}
+ep9_report_fig[["%difference"]]
+```
+
+Linear Regression: 差值恆定
+================
+
+### Ordinary Linear Regression
+
+```{r}
+plot(ep9_analysis[["regression"]][["LinReg"]][["mcreg"]])
+```
+
+### Deming Regression
+
+```{r}
+plot(ep9_analysis[["regression"]][["Deming"]][["mcreg"]])
+```
+
+Linear Regression: 差值等比例
+================
+
+### Weighted Ordinary Linear Regression
+
+```{r}
+plot(ep9_analysis[["regression"]][["WLinReg"]][["mcreg"]])
+```
+
+### Weighted Deming
+
+```{r}
+plot(ep9_analysis[["regression"]][["WDeming"]][["mcreg"]])
+```
+
+Linear Regression: Passing Bablok與總結
+================
+
+### Passing Bablok
+
+```{r}
+plot(ep9_analysis[["regression"]][["PaBa"]][["mcreg"]])
+```
+
+### Overall
+
+```{r}
+ep9_report_fig[["comparefit fun"]]()
+```

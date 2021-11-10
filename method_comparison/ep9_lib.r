@@ -106,6 +106,23 @@ ep9_report_crit[["outlier"]] <- lapply(
 )
 
 # * report_tab
+ep9_report_tab[["raw"]] <- ep9_tidy[["combine"]][
+    , c(
+        "y_ref",
+        "y_test"
+    )
+] %>%
+    round(
+        digits = 3
+    ) %>%
+    datatable(
+        options = list(scrollY = "450px"),
+        colnames = c(
+            "對比方法測量值",
+            "受測器材測量值"
+        )
+    )
+
 
 ep9_report_tab[["rosner"]] <- lapply(
     ep9_analysis[["rosner"]],
