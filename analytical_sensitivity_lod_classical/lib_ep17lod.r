@@ -255,6 +255,20 @@ ep17lod_report_fig[["qq"]] <- ggplot(
     ylab("SD")
 
 # * report_tab
+## Raw data
+
+ep17lod_report_tab[["raw"]] <- ep17lod_tidy[["combine"]] %>%
+    datatable(
+        options = list(scrollY = "450px"),
+        colnames = c(
+            "Sample",
+            "Reagent Lot",
+            "測量值"
+        )
+    )
+
+
+
 
 ## 各樣品 x 各濃度的parametric descriptive statistics
 
