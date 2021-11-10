@@ -1,0 +1,110 @@
+---
+title: "EP17-A2 LoB Data Analysis"
+date: "`r Sys.Date()`"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    include = TRUE,
+    fig.align = "center"
+)
+```
+
+```{r pkg.load, include = FALSE}
+pkg_lst <- c(
+    "knitr",
+    "readODS",
+    "dplyr",
+    "collapsibleTree",
+    "flextable",
+    "DT",
+    "officedown",
+    "officer",
+    "ggplot2",
+    "plotly",
+    "here"
+)
+
+lapply(
+    pkg_lst,
+    library,
+    character.only = TRUE
+)
+
+setwd(
+    paste(
+        git = here(),
+        project = "analytical_sensitivity_lob_classical",
+        sep = "/"
+    )
+)
+
+source("lib_ft.r")
+```
+
+```{r include = FALSE}
+source("main_ep17.r")
+```
+
+
+
+Raw Data
+================
+
+### 原始資料表
+
+```{r}
+ep17lob_report_tab[["raw"]]
+```
+
+### Scatter Plot
+
+```{r}
+ep17lob_report_fig[["raw"]]
+```
+
+Parametric
+================
+
+### 敘述統計
+
+```{r}
+ep17lob_report_tab[["desc parametric"]]
+```
+
+### 區分Reagent Lot分析
+
+```{r}
+ep17lob_report_tab[["lob para lot"]]
+```
+
+### 不區分Reagent Lot分析
+
+```{r}
+ep17lob_report_tab[["lob para 1"]]
+```
+
+Non-parametric
+================
+
+### 敘述統計
+
+```{r}
+ep17lob_report_tab[["desc non-parametric"]]
+```
+
+### 區分Reagent Lot分析
+
+```{r}
+ep17lob_report_tab[["lob nonpara lot"]]
+```
+
+### 不區分Reagent Lot分析
+
+```{r}
+ep17lob_report_tab[["lob nonpara 1"]]
+```

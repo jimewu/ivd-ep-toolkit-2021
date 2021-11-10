@@ -37,6 +37,18 @@ ep7_analysis[["paired difference"]] <-
     ungroup()
 
 # * report_tab
+## Raw data
+
+ep7_report_tab[["raw"]] <- ep7_tidy[["combine"]] %>%
+    datatable(
+        options = list(scrollY = "450px"),
+        colnames = c(
+            "分析物濃度",
+            "測量值: Test Sample",
+            "測量值: Control Sample"
+        )
+    )
+
 
 ## Difference表格
 

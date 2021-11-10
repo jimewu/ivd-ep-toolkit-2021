@@ -38,3 +38,35 @@ ep7_report_crit[["replicate 1side"]] <- ifelse(
     ceiling(ep7_analysis[["replicate 1side"]]),
     5
 )
+
+ep7_report_tab[["replicate"]] <- data.frame(
+    variable = c(
+        "Alpha",
+        "Beta",
+        "Repeatability (EP5) (%CV)",
+        "Allowable Interference (%)",
+        "Replicate (One-sided)",
+        "Replicate (Two-sided)"
+    ),
+    number = c(
+        ep7_import[["setting"]]$alpha,
+        ep7_import[["setting"]]$beta,
+        ep7_import[["setting"]]$repeatability * 100,
+        ep7_import[["setting"]]$allowable_interference * 100,
+        ep7_report_crit[["replicate 1side"]],
+        ep7_report_crit[["replicate 2side"]]
+    )
+) %>%
+    flextable() %>%
+    set_header_labels(
+        variable = "變數",
+        number = "數值"
+    ) %>%
+    align(
+        align = "center",
+        part = "header"
+    ) %>%
+    align(
+        align = "center",
+        part = "body"
+    )

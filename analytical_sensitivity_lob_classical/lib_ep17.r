@@ -139,118 +139,6 @@ for (
     )
 }
 
-
-
-
-# ## if-loop: 區分情況計算lob
-
-# if (
-#     # 條件1:資料為常態
-#     ep17lob_analysis[["spw.p"]] >= 0.05 &
-#         ## 條件2: reagent_lot ≥4
-#         ep17lob_analysis[["reagent_lot number"]] >= 4
-# ) {
-#     # 則不分批計算常態lob
-#     ep17lob_analysis[["lob"]] <- get_lob_para(
-#         ep17lob_tidy[["combine"]]$y,
-#         ep17lob_analysis[["sample_lot number"]]
-#     )
-
-#     # 紀錄狀況判斷結果
-#     ep17lob_analysis[["crit"]] <- data.frame(
-#         normality = TRUE,
-#         by_lot = FALSE
-#     )
-# } else if (
-#     # 條件1:資料為非常態
-#     ep17lob_analysis[["spw.p"]] < 0.05 &
-#         ## 條件2: reagent_lot ≥4
-#         ep17lob_analysis[["reagent_lot number"]] >= 4
-# ) {
-#     # 則不分批計算非常態lob
-#     ep17lob_analysis[["lob"]] <- get_lob_nonpara(
-#         ep17lob_tidy[["combine"]]$y
-#     )
-
-#     # 紀錄狀況判斷結果
-#     ep17lob_analysis[["crit"]] <- data.frame(
-#         normality = FALSE,
-#         by_lot = FALSE
-#     )
-# } else if (
-#     # 條件1:資料為常態
-#     ep17lob_analysis[["spw.p"]] >= 0.05 &
-#         ## 條件2: reagent_lot ≤3
-#         ep17lob_analysis[["reagent_lot number"]] <= 3
-# ) {
-#     # 則分批計算常態lob
-#     ep17lob_analysis[["lot lob"]] <- lapply(
-#         ep17lob_tidy[["split"]],
-#         function(x) {
-#             sample_lot <- x$sample_lot %>%
-#                 factor() %>%
-#                 levels() %>%
-#                 length()
-
-#             result <- get_lob_para(
-#                 x$y,
-#                 sample_lot
-#             )
-#         }
-#     )
-
-#     # 紀錄狀況判斷結果
-#     ep17lob_analysis[["crit"]] <- data.frame(
-#         normality = TRUE,
-#         by_lot = TRUE
-#     )
-# } else if (
-#     # 條件1:資料為非常態
-#     ep17lob_analysis[["spw.p"]] < 0.05 &
-#         ## 條件2: reagent_lot ≤3
-#         ep17lob_analysis[["reagent_lot number"]] <= 3
-# ) {
-#     # 則分批計算非常態lob
-#     ep17lob_analysis[["lot lob"]] <- lapply(
-#         ep17lob_tidy[["split"]],
-#         function(x) {
-#             result <- get_lob_nonpara(x$y)
-#         }
-#     )
-
-#     # 紀錄狀況判斷結果
-#     ep17lob_analysis[["crit"]] <- data.frame(
-#         normality = FALSE,
-#         by_lot = TRUE
-#     )
-# }
-
-# ## if-loop: 如果有分批lob，則把各批合併
-
-# if (
-#     # 如果有分批lob
-#     is.null(ep17lob_analysis[["lot lob"]]) == FALSE
-# ) {
-#     # 把各批合併
-#     ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lot lob"]][[1]]
-#     for (
-#         x in seq(
-#             2, length(ep17lob_analysis[["lot lob"]])
-#         )
-#     ) {
-#         ep17lob_analysis[["lob"]] <- rbind(
-#             ep17lob_analysis[["lob"]],
-#             ep17lob_analysis[["lot lob"]][[x]]
-#         )
-#     }
-
-#     # 加上final lob
-#     ep17lob_analysis[["lob"]] <- ep17lob_analysis[["lob"]] %>%
-#         mutate(
-#             final_lob = max(lob)
-#         )
-# }
-
 # * report_fig
 
 ## raw data: 各測量值分佈
@@ -314,6 +202,17 @@ ep17lob_report_fig[["qq"]] <- ggplot(
     )
 
 # * report_tab
+
+ep17lob_report_tab[["raw"]] <- ep17lob_tidy[["combine"]] %>%
+    datatable(
+        options = list(scrollY = "450px"),
+        colnames = c(
+            "Sample Lot",
+            "Reagent Lot",
+            "測量值"
+        )
+    )
+
 
 ## 敘述統計: parametric
 

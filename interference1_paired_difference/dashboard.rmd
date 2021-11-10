@@ -1,0 +1,79 @@
+---
+title: "EP07, 3rd ed. Data Analysis"
+date: "`r Sys.Date()`"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    include = TRUE,
+    fig.align = "center"
+)
+```
+
+```{r pkg.load, include = FALSE}
+pkg_lst <- c(
+    "knitr",
+    "readODS",
+    "dplyr",
+    "collapsibleTree",
+    "flextable",
+    "DT",
+    "officedown",
+    "officer",
+    "ggplot2",
+    "plotly",
+    "here"
+)
+
+lapply(
+    pkg_lst,
+    library,
+    character.only = TRUE
+)
+
+setwd(
+    paste(
+        git = here(),
+        project = "interference1_paired_difference",
+        sep = "/"
+    )
+)
+
+source("lib_ft.r")
+```
+
+```{r include = FALSE}
+source("ep7_main.r")
+```
+
+Replicate
+================
+
+```{r}
+ep7_report_tab[["replicate"]]
+```
+
+Paired Difference
+================
+
+### Raw Data
+
+```{r}
+ep7_report_tab[["raw"]]
+```
+
+### Difference
+
+```{r}
+ep7_report_tab[["paired difference FT"]]
+```
+
+### %Difference
+
+```{r}
+ep7_report_tab[["paired %difference FT"]]
+```
